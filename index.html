@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Statistiche chiamate 3CX</title>
+<script>try{var t=localStorage.getItem('crm_theme')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#eef3fb;--surface:#fff;--border:#e2e8f0;--text:#0f172a;--muted:#64748b;--faint:#94a3b8;--primary:#2563eb;--primary-d:#1d4ed8;--soft:#eff6ff;--soft2:#f1f5f9;--sh:0 4px 18px rgba(15,23,42,.07);--r:16px;--rs:10px;--bar1:#1d4ed8;--bar2:#60a5fa;color-scheme:light}
+[data-theme=dark]{--bg:#0a1020;--surface:#111a30;--border:#223052;--text:#e8eeff;--muted:#a3b3d6;--faint:#6f81ad;--primary:#4f8bff;--primary-d:#7aa7ff;--soft:#15254d;--soft2:#17213b;--sh:0 4px 18px rgba(0,0,0,.35);--bar1:#3b6fe0;--bar2:#7aa7ff;color-scheme:dark}
+body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .25s}
+header{background:linear-gradient(120deg,#0b1f4d 0%,#1d4ed8 62%,#0ea5e9 100%);color:#fff;padding:18px 20px 62px}
+.hin{max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.logo{background:#fff;border-radius:12px;padding:7px 12px;display:flex}
+.logo img{height:30px}
+.ttl{flex:1;min-width:200px}
+.ttl h1{font-size:21px;font-weight:800;letter-spacing:-.3px}
+.ttl p{font-size:12.5px;opacity:.8;margin-top:2px;text-transform:capitalize}
+.hb{border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.12);color:#fff;border-radius:10px;padding:8px 13px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;backdrop-filter:blur(4px);transition:background .15s,transform .1s}
+.hb:hover{background:rgba(255,255,255,.24)}.hb:active{transform:scale(.96)}
+.wrap{max-width:1100px;margin:-40px auto 0;padding:0 16px 48px}
+.card{background:var(--surface);border-radius:var(--r);box-shadow:var(--sh);padding:18px 20px;margin-bottom:14px;border:1px solid var(--border)}
+.card h2{font-size:13.5px;font-weight:700;color:var(--muted);margin-bottom:12px}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.search{flex:1;min-width:250px;position:relative}
+.search input{width:100%;border:1.5px solid var(--border);border-radius:12px;padding:12px 70px 12px 40px;font:inherit;font-size:15px;background:var(--soft2);color:var(--text);outline:none;transition:border-color .15s,box-shadow .15s,background .15s}
+.search input:focus{border-color:var(--primary);background:var(--surface);box-shadow:0 0 0 4px rgba(37,99,235,.14)}
+.search .ico{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:15px}
+.search .kbd{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--faint);border:1px solid var(--border);border-radius:5px;padding:1px 6px}
+.search #qx{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:0;background:none;color:var(--faint);font-size:17px;cursor:pointer;display:none;padding:4px 8px}
+.sugg{position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 14px 34px rgba(0,0,0,.2);z-index:30;overflow:hidden;display:none}
+.sugg div{padding:10px 14px;display:flex;justify-content:space-between;gap:10px;cursor:pointer;font-size:13.5px;align-items:center}
+.sugg div.on,.sugg div:hover{background:var(--soft)}
+.sugg small{color:var(--muted);font-variant-numeric:tabular-nums}
+.seg{display:flex;background:var(--soft2);border-radius:12px;padding:4px;gap:2px;flex-wrap:wrap}
+.seg button{border:0;background:none;font:inherit;font-size:13px;font-weight:600;color:var(--muted);padding:8px 14px;border-radius:9px;cursor:pointer;transition:all .15s}
+.seg button:hover{color:var(--text)}
+.seg button.on{background:var(--surface);color:var(--primary-d);box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.dates{display:none;gap:6px;align-items:center;font-size:13px;color:var(--muted)}
+.dates.show{display:flex}
+.dates input,select{border:1.5px solid var(--border);border-radius:var(--rs);padding:8px 10px;font:inherit;font-size:13px;background:var(--soft2);color:var(--text)}
+.btn{border:1px solid var(--border);border-radius:var(--rs);padding:9px 14px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;background:var(--soft2);color:var(--muted);transition:all .15s}
+.btn:hover{color:var(--text);border-color:var(--faint)}
+.btn.go{background:linear-gradient(135deg,var(--primary),var(--primary-d));color:#fff;border-color:transparent;box-shadow:0 3px 10px rgba(37,99,235,.35)}
+.btn.go:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.6}
+.chips{display:none;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px;font-size:12.5px;color:var(--muted)}
+.chip{background:var(--soft);color:var(--primary-d);border-radius:20px;padding:4px 6px 4px 12px;font-weight:700;display:inline-flex;gap:6px;align-items:center;animation:pop .2s ease}
+.chip button{border:0;background:rgba(37,99,235,.15);color:inherit;border-radius:50%;width:18px;height:18px;cursor:pointer;font-size:11px;line-height:1}
+@keyframes pop{from{transform:scale(.85);opacity:0}}
+.note{font-size:12.5px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:var(--rs);padding:8px 12px;margin-top:10px;display:none}
+.addbar{display:none;align-items:center;gap:12px;flex-wrap:wrap;margin-top:10px;background:#fffbeb;border:1.5px solid #fde68a;border-radius:var(--rs);padding:10px 14px;font-size:13px;color:#92400e}
+.addbar b{color:#0f172a}
+.addbar .btn{margin-left:auto}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:12px;margin-bottom:14px}
+.kpi{background:var(--surface);border-radius:var(--r);box-shadow:var(--sh);padding:15px 16px;border:1px solid var(--border);display:flex;gap:12px;align-items:center;transition:transform .18s,box-shadow .18s;border-bottom:3px solid var(--c,var(--primary))}
+.kpi:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(15,23,42,.14)}
+.kpi .ic{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;background:color-mix(in srgb,var(--c,#2563eb) 16%,transparent)}
+.kpi .l{font-size:12px;color:var(--muted);font-weight:600}
+.kpi .v{font-size:27px;font-weight:800;line-height:1.15;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
+.kpi .s{font-size:11.5px;color:var(--faint)}
+.sk{position:relative;overflow:hidden;min-height:78px}
+.sk::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(148,163,184,.25),transparent);animation:sh 1.2s infinite}
+@keyframes sh{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:760px){.grid2{grid-template-columns:1fr}}
+.hint{font-weight:500;color:var(--faint);font-size:12px;margin-left:6px}
+.bars{display:flex;align-items:flex-end;gap:3px;height:180px;padding-top:8px}
+.bars.short{height:125px}
+.bar{flex:1;min-width:3px;background:linear-gradient(to top,var(--bar1),var(--bar2));border-radius:5px 5px 0 0;position:relative;cursor:pointer;transform-origin:bottom;animation:grow .55s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--n)*9ms);transition:filter .15s,opacity .2s}
+.bars.na .bar{animation:none}
+@keyframes grow{from{transform:scaleY(0)}}
+.bar.zero{background:var(--border);cursor:default}
+.bar.peak{background:linear-gradient(to top,#f59e0b,#fcd34d)}
+.bar:not(.zero):hover{filter:brightness(1.18)}
+.bar.dim{opacity:.35}
+.bar.sel{outline:2px solid var(--text);outline-offset:1px}
+.bar .tip{display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;font-size:11.5px;padding:5px 9px;border-radius:7px;white-space:nowrap;z-index:5;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.bar:hover .tip{display:block}
+.axis{display:flex;gap:3px;margin-top:6px;font-size:10px;color:var(--faint)}
+.axis span{flex:1;text-align:center;overflow:hidden;white-space:nowrap}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:11.5px;color:var(--muted);font-weight:600;padding:6px 8px;border-bottom:1.5px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:1}
+td{padding:9px 8px;border-bottom:1px solid var(--border)}
+tr.click{cursor:pointer;transition:background .12s}
+tr.click:hover td{background:var(--soft)}
+tr.fresh td{animation:flash 2.2s ease}
+@keyframes flash{0%,40%{background:rgba(16,185,129,.28)}}
+.num{font-variant-numeric:tabular-nums;font-weight:600}
+.pill{display:inline-block;background:var(--soft);color:var(--primary-d);font-weight:700;font-size:11.5px;padding:2px 9px;border-radius:20px}
+.m3{background:#dbeafe;color:#1d4ed8;font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:10px;margin-left:6px}
+.rep{margin-left:6px;font-size:11px;font-weight:700;color:#b45309;background:#fef3c7;border-radius:10px;padding:1px 6px}
+.unk{color:var(--faint);font-style:italic}
+.meter{height:5px;background:var(--soft2);border-radius:5px;margin-top:5px;overflow:hidden;min-width:60px}
+.meter i{display:block;height:100%;background:linear-gradient(90deg,var(--bar1),var(--bar2));border-radius:5px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:middle;flex-shrink:0}
+.kpi>div:last-child{min-width:0}
+.kpi .v.sm{font-size:17px;line-height:1.2;letter-spacing:-.2px;white-space:normal;overflow-wrap:anywhere;padding:3px 0}
+.sbw{flex:1;min-width:3px;position:relative;cursor:pointer;transform-origin:bottom;animation:grow .55s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--n)*9ms);transition:opacity .2s}
+.bars.na .sbw{animation:none}
+.sbw .sbar{display:flex;flex-direction:column;height:100%;border-radius:5px 5px 0 0;overflow:hidden}
+.sbw .sbar i{display:block;min-height:1px}
+.sbw.zero{background:var(--border);border-radius:5px 5px 0 0;cursor:default}
+.sbw:not(.zero):hover{filter:brightness(1.12)}
+.sbw.sel{outline:2px solid var(--text);outline-offset:1px}
+.bars.dimmed .sbw:not(.sel){opacity:.35}
+.sbw .tip{display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;font-size:11.5px;padding:6px 10px;border-radius:7px;white-space:nowrap;z-index:5;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,.3);line-height:1.5}
+.sbw:hover .tip{display:block}
+.legend{display:flex;flex-wrap:wrap;gap:6px 8px;margin-top:12px}
+.lg{border:1.5px solid var(--border);background:var(--soft2);color:var(--text);border-radius:20px;padding:3px 11px 3px 9px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.lg:hover{border-color:var(--faint)}
+.lg.on{border-color:var(--primary);background:var(--soft);color:var(--primary-d)}
+tr.selrow td{background:var(--soft)}
+tr.dimrow td{opacity:.45}
+.mut{font-size:12px;color:var(--faint);margin-top:10px;line-height:1.5}
+.heat{border-collapse:separate;border-spacing:0}
+.heat th{text-align:center;padding:5px 2px;min-width:34px}
+.heat th:first-child,.heat td:first-child{text-align:left;position:sticky;left:0;background:var(--surface);z-index:2;min-width:130px;white-space:nowrap;padding-right:10px}
+.heat td{border:2px solid var(--surface);text-align:center;padding:7px 3px;font-size:12px;font-variant-numeric:tabular-nums;border-radius:7px}
+.heat td:first-child{border:0;border-bottom:1px solid var(--border);border-radius:0;font-size:13px}
+.heat td.c{cursor:pointer;font-weight:600;transition:transform .12s}
+.heat td.c:hover{transform:scale(1.12)}
+.heat td.z{color:var(--faint);background:var(--soft2)}
+.oc{display:inline-block;margin:2px 14px 2px 0;font-size:13px}
+.empty,.loading{text-align:center;color:var(--faint);font-size:13px;padding:24px 0}
+.scroll{max-height:430px;overflow:auto}
+.more{margin-top:10px;text-align:center}
+#err{display:none;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:var(--rs);padding:10px 14px;font-size:13px;margin-bottom:14px}
+.client{display:none;animation:pop .25s ease}
+.client .top{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.client .av{width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--primary),#0ea5e9);color:#fff;font-weight:800;font-size:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 14px rgba(37,99,235,.35)}
+.client .nm{font-size:19px;font-weight:800}
+.client .sub{font-size:13px;color:var(--muted);margin-top:2px}
+.client .acts{display:flex;gap:8px}
+.client .gen{margin-top:12px;background:var(--soft2);border-radius:var(--rs);padding:10px 13px;font-size:13px;white-space:pre-wrap}
+.client .gen b{display:block;font-size:11.5px;color:var(--faint);font-weight:600;margin-bottom:2px}
+.client h3{font-size:13px;font-weight:700;color:var(--muted);margin:14px 0 8px}
+.cn{border-left:3px solid var(--primary);background:var(--soft2);border-radius:0 var(--rs) var(--rs) 0;padding:9px 12px;margin-bottom:8px}
+.cn .meta{font-size:11.5px;color:var(--faint);margin-bottom:3px}
+.cn .meta b{color:var(--muted)}
+.cn .tx{font-size:13px;line-height:1.55;white-space:pre-wrap}
+.cn .tool{background:var(--soft);color:var(--primary-d);font-weight:700;font-size:11px;padding:1px 7px;border-radius:5px;margin-left:6px}
+.nform{background:var(--soft2);border:1.5px dashed var(--border);border-radius:var(--rs);padding:12px;margin-bottom:12px;animation:pop .2s ease}
+.nform .r{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.nform input{flex:1;min-width:130px;border:1.5px solid var(--border);border-radius:var(--rs);padding:9px 11px;font:inherit;font-size:13.5px;background:var(--surface);color:var(--text);outline:none}
+.nform input#nf-tool{flex:0 0 130px}
+.nform textarea{width:100%;border:1.5px solid var(--border);border-radius:var(--rs);padding:10px 12px;font:inherit;font-size:13.5px;background:var(--surface);color:var(--text);outline:none;resize:vertical;min-height:84px}
+.nform input:focus,.nform textarea:focus{border-color:var(--primary)}
+.modal{display:none;position:fixed;inset:0;background:rgba(10,16,32,.55);backdrop-filter:blur(5px);z-index:100;align-items:center;justify-content:center;padding:16px}
+.modal.open{display:flex}
+.modal .box{background:var(--surface);border-radius:20px;padding:26px;width:100%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,.35);animation:pop .22s ease;max-height:94vh;overflow:auto}
+.modal h3{font-size:17px;margin-bottom:6px}
+.modal p{font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.5}
+.modal label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin:10px 0 4px}
+.modal input:not([type=checkbox]),.modal textarea{width:100%;border:1.5px solid var(--border);border-radius:var(--rs);padding:10px 12px;font:inherit;font-size:14px;background:var(--soft2);color:var(--text);outline:none}
+.modal input:focus,.modal textarea:focus{border-color:var(--primary);background:var(--surface)}
+.modal textarea{resize:vertical;min-height:62px}
+.modal .chk{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:var(--text);cursor:pointer}
+.modal .row{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+.msg{font-size:12.5px;margin-top:10px;min-height:16px}
+.msg.ok{color:#059669}.msg.ko{color:#dc2626}.msg.warn{color:#b45309}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(16px);background:rgba(15,23,42,.94);color:#fff;padding:11px 20px;border-radius:30px;font-size:13px;font-weight:600;box-shadow:0 8px 28px rgba(0,0,0,.3);opacity:0;transition:all .3s;pointer-events:none;z-index:200;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hin">
+    <div class="logo"><img src="https://www.medeatelemedicina.com/wp-content/uploads/2024/06/Logo-MedEA-Telemedicina.svg" alt="MedEA" onerror="this.parentNode.style.display='none'"></div>
+    <div class="ttl"><h1>Statistiche chiamate</h1><p id="today-lbl"></p></div>
+    <button class="hb" onclick="openAdd()">➕ Aggiungi numero</button>
+    <button class="hb" onclick="exportCsv()">⬇ CSV</button>
+    <button class="hb" onclick="load()" title="Aggiorna">↻</button>
+    <button class="hb" id="theme-btn" onclick="toggleTheme()" title="Tema chiaro/scuro">🌓</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div id="err"></div>
+
+  <div class="card">
+    <div class="toolbar">
+      <div class="search">
+        <span class="ico">🔍</span>
+        <input id="q" type="text" placeholder="Cerca per numero o nome cliente…" autocomplete="off">
+        <span class="kbd" id="kbd">/</span>
+        <button id="qx" title="Cancella ricerca">✕</button>
+        <div class="sugg" id="sugg"></div>
+      </div>
+      <div class="seg" id="presets">
+        <button data-p="today" class="on">Oggi</button>
+        <button data-p="month">Questo mese</button>
+        <button data-p="all">Tutto</button>
+        <button data-p="custom">Personalizzato</button>
+      </div>
+      <select id="opsel" title="Filtra per operatore" style="display:none"></select>
+      <div class="dates" id="dates"><input type="date" id="d1"> <span>–</span> <input type="date" id="d2"></div>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div class="addbar" id="addbar"></div>
+    <div class="note" id="qnote">Con una ricerca attiva vengono considerate tutte le chiamate registrate, senza limite di periodo.</div>
+  </div>
+
+  <div class="card client" id="client"></div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:10px">
+      <h2 id="chartTitle" style="margin:0">Chiamate per giorno</h2>
+      <select id="group"><option value="day">Per giorno</option><option value="month">Per mese</option></select>
+    </div>
+    <div id="chart"></div>
+  </div>
+
+  <div class="note" id="opmissing">Nella tabella <b>call_log</b> mancano le colonne <b>agent_ext</b> / <b>agent_name</b>: le statistiche per operatore non sono disponibili. Esegui su Supabase: <code>ALTER TABLE call_log ADD COLUMN IF NOT EXISTS agent_ext TEXT; ALTER TABLE call_log ADD COLUMN IF NOT EXISTS agent_name TEXT;</code></div>
+
+  <div id="opsec">
+    <div class="grid2">
+      <div class="card"><h2>Chiamate per operatore <span class="hint">clicca per filtrare</span></h2><div class="scroll" id="opbars"></div><div class="mut" id="opunk"></div></div>
+      <div class="card"><h2 id="optimeTitle">Andamento per operatore</h2><div id="optime"></div><div class="legend" id="oplegend"></div></div>
+    </div>
+    <div class="card"><h2>Dettaglio operatori</h2><div class="scroll" id="optable"></div></div>
+    <div class="card"><h2>Operatori per fascia oraria <span class="hint">clicca una cella per filtrare operatore e ora</span></h2><div class="scroll" id="opheat"></div></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card"><h2>Per fascia oraria <span class="hint">clicca una barra per filtrare</span></h2><div id="hours"></div></div>
+    <div class="card"><h2>Per giorno della settimana <span class="hint">clicca per filtrare</span></h2><div id="wdays"></div></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card"><h2>Numeri che chiamano di più</h2><div class="scroll" id="top"></div></div>
+    <div class="card"><h2>Ultime chiamate</h2><div class="scroll" id="recent"></div><div class="more" id="more" style="display:none"><button class="btn" onclick="showMore()">Mostra altre</button></div></div>
+  </div>
+</div>
+
+<div class="modal" id="addm" onmousedown="if(event.target===this)closeAdd()">
+  <div class="box">
+    <h3 id="a-title">Aggiungi numero in rubrica</h3>
+    <p>Quando questo numero chiamerà, il CRM lo riconoscerà subito. Scrivilo nello stesso formato che vedi nell'elenco chiamate.</p>
+    <label>Numero *</label><input id="a-num" placeholder="es. 3331234567" inputmode="tel">
+    <label>Nome</label><input id="a-name" placeholder="Nome cliente">
+    <label>Indirizzo</label><input id="a-addr" placeholder="Indirizzo">
+    <label>Note</label><textarea id="a-notes" placeholder="Note sul cliente"></textarea>
+    <label class="chk"><input type="checkbox" id="a-m3"> Utilizza MedEA 3</label>
+    <div class="msg" id="a-msg"></div>
+    <div class="row"><button class="btn" onclick="closeAdd()">Chiudi</button><button class="btn go" id="a-save" onclick="saveAdd()">Salva in rubrica</button></div>
+  </div>
+</div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+const INLINE_CONFIG = {
+  SUPABASE_URL: "https://docyzzzjduecrfrjezoo.supabase.co",
+  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvY3l6enpqZHVlY3Jmcmplem9vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3OTQxNzAsImV4cCI6MjA5NTM3MDE3MH0.UkhERx4Ju-mIAPMpHIN9jPR50nVDwd8dKETHHuUU7XA"
+};
+
+// ── Utilità ──────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const WD = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
+const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const pad = n => String(n).padStart(2,'0');
+const dayKey = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const fmtDay = k => k.length === 7 ? k.split('-').reverse().join('/') : k.split('-').reverse().join('/');
+const noMotion = matchMedia('(prefers-reduced-motion:reduce)').matches;
+const hhmm = d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+function fmtWhen(d) {
+  const t = dayKey(new Date()), y = dayKey(new Date(Date.now() - 864e5)), k = dayKey(d);
+  return k === t ? `Oggi ${hhmm(d)}` : k === y ? `Ieri ${hhmm(d)}` : `${fmtDay(k)} ${hhmm(d)}`;
+}
+let toastT;
+function toast(m) { const e = $('toast'); e.textContent = m; e.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => e.classList.remove('show'), 2600); }
+
+// ── Configurazione database ──────────────────────────────────────
+let sb = null;
+function start(cfg) { sb = supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY); contacts = {}; load(); }
+
+// ── Stato ────────────────────────────────────────────────────────
+let preset = 'today', contacts = {}, rows = [], view = [], listLimit = 50, searching = false;
+let f = { hour: null, wd: null, day: null, op: null };
+let hasAgent = true, opList = [], opColor = {}, rowsOp = [], rowsNoOp = [];
+const UNK = 'Non rilevato';
+const PALETTE = ['#2563eb','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#ec4899','#84cc16','#f97316','#14b8a6','#6366f1','#a855f7','#eab308','#0ea5e9'];
+const notesCache = {};
+
+async function loadContacts() {
+  let from = 0;
+  while (true) {
+    const { data, error } = await sb.from('contacts').select('number,name,address,notes,usa_medea3').range(from, from + 999);
+    if (error) throw error;
+    data.forEach(c => contacts[c.number] = c);
+    if (data.length < 1000) break;
+    from += 1000;
+  }
+}
+const nameOf = n => contacts[n]?.name || '';
+const label = n => nameOf(n) ? esc(nameOf(n)) : '<span class="unk">Non in rubrica</span>';
+
+function getRange() {
+  const now = new Date(), sod = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (preset === 'today') return [sod, null];
+  if (preset === 'month') return [new Date(now.getFullYear(), now.getMonth(), 1), null];
+  if (preset === 'custom') {
+    const a = $('d1').value, b = $('d2').value;
+    return [a ? new Date(a + 'T00:00:00') : null, b ? new Date(new Date(b + 'T00:00:00').getTime() + 864e5) : null];
+  }
+  return [null, null];
+}
+
+// ── Operatori ────────────────────────────────────────────────────
+function prepOps(acc) {
+  const extName = {}, tot = {};
+  const nm = r => (r.agent_name || '').toString().trim(), ex = r => (r.agent_ext || '').toString().trim();
+  if (hasAgent) acc.forEach(r => { if (nm(r) && ex(r)) extName[ex(r)] = nm(r); });
+  acc.forEach(r => {
+    r._op = hasAgent ? (nm(r) || extName[ex(r)] || (ex(r) ? 'Int. ' + ex(r) : UNK)) : UNK;
+    tot[r._op] = (tot[r._op] || 0) + 1;
+  });
+  opList = hasAgent ? Object.keys(tot).sort((a, b) => a === UNK ? 1 : b === UNK ? -1 : tot[b] - tot[a]) : [];
+  opColor = {}; let i = 0;
+  opList.forEach(o => opColor[o] = o === UNK ? '#94a3b8' : PALETTE[i++ % PALETTE.length]);
+}
+const opIdx = o => opList.indexOf(o);
+const opDot = o => `<span class="dot" style="background:${opColor[o] || '#94a3b8'}"></span>`;
+
+// ── Caricamento ──────────────────────────────────────────────────
+async function load(silent) {
+  if (!sb) return;
+  const err = $('err'); err.style.display = 'none';
+  if (silent !== true) {
+    f = { hour: null, wd: null, day: null, op: null };
+    $('kpis').innerHTML = '<div class="kpi sk"></div>'.repeat(8);
+    $('chart').innerHTML = '<div class="kpi sk" style="min-height:170px"></div>';
+  }
+  try {
+    if (!Object.keys(contacts).length) await loadContacts();
+    const q = $('q').value.trim();
+    searching = !!q;
+    $('qnote').style.display = q ? 'block' : 'none';
+    const [from, to] = getRange();
+    const acc = [];
+    let off = 0;
+    hasAgent = true;
+    let cols = 'called_at,number,agent_ext,agent_name';
+    while (true) {
+      let req = sb.from('call_log').select(cols).order('called_at', { ascending: false }).range(off, off + 999);
+      if (q) {
+        const digits = q.replace(/[\s.\-()]/g, '');
+        const lq = q.toLowerCase();
+        const nums = Object.values(contacts).filter(c => (c.name || '').toLowerCase().includes(lq)).map(c => c.number).slice(0, 40);
+        const parts = [];
+        if (digits) parts.push(`number.ilike.*${digits.replace(/[,()*]/g, '')}*`);
+        if (nums.length) parts.push(`number.in.(${nums.map(n => '"' + n.replace(/"/g, '') + '"').join(',')})`);
+        if (!parts.length) break;
+        req = req.or(parts.join(','));
+      } else {
+        if (from) req = req.gte('called_at', from.toISOString());
+        if (to) req = req.lt('called_at', to.toISOString());
+      }
+      const { data, error } = await req;
+      if (error) {
+        if (hasAgent && /agent_(ext|name)/.test(error.message || '')) { hasAgent = false; cols = 'called_at,number'; acc.length = 0; off = 0; continue; }
+        throw error;
+      }
+      acc.push(...data);
+      if (data.length < 1000 || acc.length >= 20000) break;
+      off += 1000;
+    }
+    acc.forEach(r => r._d = new Date(r.called_at));
+    prepOps(acc);
+    if (silent === true && rows.length) {
+      const prevMax = Math.max(...rows.map(r => r._d));
+      acc.forEach(r => r._new = r._d > prevMax);
+      const n = acc.filter(r => r._new).length;
+      if (n) toast(`📞 ${n === 1 ? 'Nuova chiamata' : n + ' nuove chiamate'}`);
+    }
+    rows = acc;
+    listLimit = 50;
+    if (silent !== true) Object.keys(notesCache).forEach(k => delete notesCache[k]);
+    render(silent !== true);
+  } catch (e) {
+    err.textContent = 'Errore di connessione al database: ' + e.message;
+    err.style.display = 'block';
+    $('kpis').innerHTML = ''; $('chart').innerHTML = '';
+  }
+}
+
+// ── Rendering ────────────────────────────────────────────────────
+function render(anim) {
+  const a = anim && !noMotion;
+  if (f.op && !opList.includes(f.op)) f.op = null;
+  const pass = r => (f.hour === null || r._d.getHours() === f.hour) && (f.wd === null || (r._d.getDay() + 6) % 7 === f.wd) && (!f.day || dayKey(r._d).startsWith(f.day));
+  rowsOp = f.op ? rows.filter(r => r._op === f.op) : rows;
+  rowsNoOp = rows.filter(pass);
+  view = rowsOp.filter(pass);
+  $('opsec').style.display = hasAgent ? '' : 'none';
+  $('opmissing').style.display = hasAgent ? 'none' : 'block';
+  renderChips(); renderOpSel(); renderKpis(a); renderChart(a);
+  if (hasAgent) { renderOpBars(); renderOpTime(a); renderOpTable(); renderOpHeat(); }
+  renderHours(a); renderWdays(a); renderTop(); renderRecent(); renderAddBar(); renderClient();
+}
+
+function pick(g, k) {
+  if (g === 'op') f.op = f.op === opList[+k] ? null : opList[+k];
+  else if (g === 'hour') f.hour = f.hour === +k ? null : +k;
+  else if (g === 'wd') f.wd = f.wd === +k ? null : +k;
+  else f.day = f.day === k ? null : k;
+  listLimit = 50; render(false);
+}
+function clearF(g) { if (g) f[g] = null; else f = { hour: null, wd: null, day: null, op: null }; render(false); }
+function renderChips() {
+  const c = [];
+  if (f.day) c.push(['day', 'Periodo ' + fmtDay(f.day)]);
+  if (f.hour !== null) c.push(['hour', `Ore ${pad(f.hour)}:00`]);
+  if (f.wd !== null) c.push(['wd', WD[f.wd]]);
+  if (f.op) c.push(['op', 'Operatore ' + f.op]);
+  const el = $('chips');
+  el.style.display = c.length ? 'flex' : 'none';
+  el.innerHTML = c.length ? 'Filtri attivi: ' + c.map(([g, t]) => `<span class="chip">${esc(t)}<button onclick="clearF('${g}')">✕</button></span>`).join('') + (c.length > 1 ? '<a href="#" onclick="clearF();return false" style="color:var(--primary-d);font-weight:600">Rimuovi tutti</a>' : '') : '';
+}
+
+function countUp(el) {
+  const t = parseFloat(el.dataset.n), d = +el.dataset.d, t0 = performance.now(), dur = 650;
+  const fmt = v => d ? v.toFixed(d).replace('.', ',') : Math.round(v);
+  (function step(now) {
+    const p = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+    el.textContent = fmt(t * e);
+    if (p < 1) requestAnimationFrame(step);
+  })(t0);
+}
+
+function renderKpis(anim) {
+  const total = view.length, byDay = {}, hours = Array(24).fill(0), uniq = new Set();
+  view.forEach(r => { const k = dayKey(r._d); byDay[k] = (byDay[k] || 0) + 1; hours[r._d.getHours()]++; uniq.add(r.number); });
+  const days = Object.keys(byDay);
+  const best = days.sort((a, b) => byDay[b] - byDay[a])[0];
+  const peak = hours.indexOf(Math.max(...hours));
+  const filtered = f.hour !== null || f.wd !== null || f.day || f.op;
+  let nDays = days.length;
+  if (!searching && !filtered && total) {
+    const [fr, to] = getRange();
+    const first = fr || new Date(Math.min(...view.map(r => r._d)));
+    const last = to ? new Date(to - 1) : new Date();
+    nDays = Math.max(1, Math.round((new Date(last.getFullYear(), last.getMonth(), last.getDate()) - new Date(first.getFullYear(), first.getMonth(), first.getDate())) / 864e5) + 1);
+  }
+  const items = [
+    { i: '📞', c: '#2563eb', l: 'Chiamate totali', n: total, s: searching ? 'storico completo' : filtered ? 'con i filtri attivi' : 'nel periodo' },
+    { i: '☀️', c: '#f59e0b', l: 'Oggi', n: byDay[dayKey(new Date())] || 0, s: 'chiamate ricevute' },
+    { i: '📈', c: '#10b981', l: 'Media al giorno', n: total ? total / nDays : 0, d: 1, s: `su ${nDays} giorni` },
+    { i: '👥', c: '#8b5cf6', l: 'Numeri diversi', n: uniq.size, s: 'chiamanti unici' },
+    { i: '🏆', c: '#ef4444', l: 'Giorno più intenso', n: best ? byDay[best] : null, t: '–', s: best ? fmtDay(best) : '' },
+    { i: '⏰', c: '#06b6d4', l: 'Ora di punta', t: total ? `${pad(peak)}:00` : '–', s: total ? `${hours[peak]} chiamate` : '' }
+  ];
+  if (hasAgent) {
+    const byOp = {}; view.forEach(r => { if (r._op !== UNK) byOp[r._op] = (byOp[r._op] || 0) + 1; });
+    const ops = Object.keys(byOp).sort((a, b) => byOp[b] - byOp[a]), unk = view.filter(r => r._op === UNK).length;
+    items.push({ i: '🎧', c: '#14b8a6', l: 'Operatori attivi', n: ops.length, s: unk ? `${unk} chiamate senza operatore` : 'hanno risposto' });
+    items.push({ i: '🥇', c: '#f59e0b', l: 'Più chiamate gestite', t: ops.length ? ops[0] : '–', sm: 1, s: ops.length ? `${byOp[ops[0]]} chiamate · ${Math.round(byOp[ops[0]] / (total - unk) * 100)}%` : '' });
+  }
+  $('kpis').innerHTML = items.map(k => {
+    const val = k.n != null ? `<div class="v" data-n="${k.n}" data-d="${k.d || 0}">${k.d ? k.n.toFixed(k.d).replace('.', ',') : k.n}</div>` : `<div class="v${k.sm ? ' sm' : ''}" title="${esc(k.t)}">${esc(k.t)}</div>`;
+    return `<div class="kpi" style="--c:${k.c}"><div class="ic">${k.i}</div><div><div class="l">${k.l}</div>${val}<div class="s">${k.s}</div></div></div>`;
+  }).join('');
+  if (anim) document.querySelectorAll('#kpis .v[data-n]').forEach(countUp);
+}
+
+function bars(items, g, cls, anim) {
+  const max = Math.max(1, ...items.map(i => i.v)), any = items.some(i => i.sel);
+  return `<div class="bars ${cls || ''} ${anim ? '' : 'na'}">${items.map((i, n) =>
+    `<div class="bar${i.v ? '' : ' zero'}${i.v && i.v === max ? ' peak' : ''}${i.sel ? ' sel' : ''}${any && !i.sel ? ' dim' : ''}" style="height:${i.v ? Math.max(4, i.v / max * 100) : 1.5}%;--n:${n}" ${i.v ? `onclick="pick('${g}','${i.key}')"` : ''}><span class="tip">${esc(i.tip)}: <b>${i.v}</b></span></div>`).join('')}</div>` +
+    `<div class="axis">${items.map(i => `<span>${i.show ? esc(i.axis) : ''}</span>`).join('')}</div>`;
+}
+const hourItems = () => { const h = Array(24).fill(0); rowsOp.forEach(r => h[r._d.getHours()]++); return h.map((v, i) => ({ v, key: i, sel: f.hour === i, tip: `${pad(i)}:00–${pad(i)}:59`, axis: pad(i), show: i % 3 === 0 })); };
+
+function renderChart(anim) {
+  const mode = $('group').value, el = $('chart');
+  $('chartTitle').textContent = mode === 'day' ? 'Chiamate per giorno' : 'Chiamate per mese';
+  if (!rowsOp.length) { el.innerHTML = '<div class="empty">Nessuna chiamata trovata.</div>'; return; }
+  const counts = {};
+  rowsOp.forEach(r => { const k = mode === 'day' ? dayKey(r._d) : dayKey(r._d).slice(0, 7); counts[k] = (counts[k] || 0) + 1; });
+  const keys = Object.keys(counts).sort();
+  const P = k => new Date(k.length === 7 ? k + '-01T00:00:00' : k + 'T00:00:00');
+  const seq = [];
+  if (mode === 'day') { for (let d = P(keys[0]); d <= P(keys[keys.length - 1]); d.setDate(d.getDate() + 1)) seq.push(dayKey(d)); }
+  else { for (let d = P(keys[0]); d <= P(keys[keys.length - 1]); d.setMonth(d.getMonth() + 1)) seq.push(dayKey(d).slice(0, 7)); }
+  if (mode === 'day' && seq.length === 1) {
+    $('chartTitle').textContent = 'Chiamate per ora · ' + fmtDay(seq[0]);
+    el.innerHTML = bars(hourItems(), 'hour', '', anim); return;
+  }
+  const step = Math.ceil(seq.length / 14);
+  el.innerHTML = bars(seq.map((k, i) => ({ v: counts[k] || 0, key: k, sel: f.day === k, tip: fmtDay(k), axis: mode === 'day' ? k.slice(8) + '/' + k.slice(5, 7) : fmtDay(k), show: i % step === 0 })), 'day', '', anim);
+}
+function renderHours(anim) { $('hours').innerHTML = bars(hourItems(), 'hour', 'short', anim); }
+function renderWdays(anim) {
+  const w = Array(7).fill(0); rowsOp.forEach(r => w[(r._d.getDay() + 6) % 7]++);
+  $('wdays').innerHTML = bars(w.map((v, i) => ({ v, key: i, sel: f.wd === i, tip: WD[i], axis: WD[i], show: true })), 'wd', 'short', anim);
+}
+
+function renderTop() {
+  const c = {}; view.forEach(r => c[r.number] = (c[r.number] || 0) + 1);
+  const list = Object.entries(c).sort((a, b) => b[1] - a[1]).slice(0, 50), el = $('top');
+  if (!list.length) { el.innerHTML = '<div class="empty">Nessun dato.</div>'; return; }
+  const max = list[0][1];
+  el.innerHTML = `<table><tr><th>Numero</th><th>Cliente</th><th style="width:34%">Chiamate</th></tr>${list.map(([n, v]) =>
+    `<tr class="click" onclick="setQuery('${esc(n)}')"><td class="num">${esc(n)}</td><td>${label(n)}${contacts[n]?.usa_medea3 ? '<span class="m3">MedEA 3</span>' : ''}</td><td><span class="pill">${v}</span><div class="meter"><i style="width:${v / max * 100}%"></i></div></td></tr>`).join('')}</table>`;
+}
+
+function renderRecent() {
+  const el = $('recent');
+  if (!view.length) { el.innerHTML = '<div class="empty">Nessuna chiamata trovata.</div>'; $('more').style.display = 'none'; return; }
+  const cnt = {}; view.forEach(r => cnt[r.number] = (cnt[r.number] || 0) + 1);
+  el.innerHTML = `<table><tr><th>Quando</th><th>Numero</th><th>Cliente</th>${hasAgent ? '<th>Risposto da</th>' : ''}</tr>${view.slice(0, listLimit).map(r =>
+    `<tr class="click${r._new ? ' fresh' : ''}" onclick="setQuery('${esc(r.number)}')"><td>${fmtWhen(r._d)}</td><td class="num">${esc(r.number)}${cnt[r.number] > 1 ? `<span class="rep" title="Chiamate nel periodo">×${cnt[r.number]}</span>` : ''}</td><td>${label(r.number)}</td>${hasAgent ? `<td>${r._op === UNK ? '<span class="unk">–</span>' : opDot(r._op) + esc(r._op)}</td>` : ''}</tr>`).join('')}</table>`;
+  $('more').style.display = view.length > listLimit ? '' : 'none';
+}
+function showMore() { listLimit += 100; renderRecent(); }
+
+// ── Sezione operatori ────────────────────────────────────────────
+function renderOpSel() {
+  const s = $('opsel'), cnt = {};
+  rows.forEach(r => cnt[r._op] = (cnt[r._op] || 0) + 1);
+  s.style.display = hasAgent && opList.length ? '' : 'none';
+  s.innerHTML = '<option value="">Tutti gli operatori</option>' + opList.map((o, i) => `<option value="${i}">${esc(o)} (${cnt[o]})</option>`).join('');
+  s.value = f.op ? String(opIdx(f.op)) : '';
+}
+$('opsel').addEventListener('change', e => { f.op = e.target.value === '' ? null : opList[+e.target.value]; listLimit = 50; render(false); });
+
+function renderOpBars() {
+  const el = $('opbars'), c = {};
+  rowsNoOp.forEach(r => c[r._op] = (c[r._op] || 0) + 1);
+  const list = Object.entries(c).sort((a, b) => a[0] === UNK ? 1 : b[0] === UNK ? -1 : b[1] - a[1]);
+  if (!list.length) { el.innerHTML = '<div class="empty">Nessun dato.</div>'; $('opunk').textContent = ''; return; }
+  const max = Math.max(...list.map(x => x[1])), tot = rowsNoOp.length;
+  el.innerHTML = `<table><tr><th>Operatore</th><th style="width:50%">Chiamate</th></tr>${list.map(([o, v]) =>
+    `<tr class="click${f.op === o ? ' selrow' : f.op ? ' dimrow' : ''}" onclick="pick('op',${opIdx(o)})"><td>${opDot(o)}${o === UNK ? '<span class="unk">' + UNK + '</span>' : esc(o)}</td><td><span class="pill">${v}</span> <small style="color:var(--faint)">${Math.round(v / tot * 100)}%</small><div class="meter"><i style="width:${v / max * 100}%;background:${opColor[o]}"></i></div></td></tr>`).join('')}</table>`;
+  const u = c[UNK] || 0;
+  $('opunk').textContent = u ? `${u} chiamate (${Math.round(u / tot * 100)}%) senza operatore: registrate prima che il CRM passasse il nome, oppure da un interno non rilevato.` : '';
+}
+
+function seqFor(data, mode) {
+  const keyOf = r => mode === 'day' ? dayKey(r._d) : dayKey(r._d).slice(0, 7);
+  let first = null, last = null;
+  data.forEach(r => { const k = keyOf(r); if (first === null || k < first) first = k; if (last === null || k > last) last = k; });
+  const P = k => new Date(k.length === 7 ? k + '-01T00:00:00' : k + 'T00:00:00'), seq = [];
+  if (mode === 'day') for (let d = P(first); d <= P(last); d.setDate(d.getDate() + 1)) seq.push(dayKey(d));
+  else for (let d = P(first); d <= P(last); d.setMonth(d.getMonth() + 1)) seq.push(dayKey(d).slice(0, 7));
+  return { seq, keyOf };
+}
+function renderOpTime(anim) {
+  const el = $('optime'), mode = $('group').value, data = rowsOp, a = anim && !noMotion;
+  if (!data.length) { el.innerHTML = '<div class="empty">Nessuna chiamata trovata.</div>'; $('oplegend').innerHTML = ''; return; }
+  const { seq, keyOf } = seqFor(data, mode);
+  let g, keys, keyFn, tipFn, axisFn, showFn;
+  if (mode === 'day' && seq.length === 1) {
+    g = 'hour'; keys = [...Array(24).keys()]; keyFn = r => r._d.getHours();
+    tipFn = k => `${pad(k)}:00–${pad(k)}:59`; axisFn = k => pad(k); showFn = i => i % 3 === 0;
+    $('optimeTitle').textContent = 'Operatori per ora · ' + fmtDay(seq[0]);
+  } else {
+    g = 'day'; keys = seq; keyFn = keyOf; tipFn = fmtDay;
+    axisFn = mode === 'day' ? k => k.slice(8) + '/' + k.slice(5, 7) : fmtDay;
+    const step = Math.ceil(seq.length / 14); showFn = i => i % step === 0;
+    $('optimeTitle').textContent = mode === 'day' ? 'Andamento giornaliero per operatore' : 'Andamento mensile per operatore';
+  }
+  const b = {}; data.forEach(r => { const k = keyFn(r); b[k] = b[k] || {}; b[k][r._op] = (b[k][r._op] || 0) + 1; });
+  const tots = keys.map(k => Object.values(b[k] || {}).reduce((x, y) => x + y, 0)), max = Math.max(1, ...tots);
+  const anySel = keys.some(k => g === 'hour' ? f.hour === k : f.day === k);
+  const used = opList.filter(o => data.some(r => r._op === o));
+  el.innerHTML = `<div class="bars ${a ? '' : 'na'}${anySel ? ' dimmed' : ''}">${keys.map((k, i) => {
+    const bk = b[k] || {}, t = tots[i], sel = g === 'hour' ? f.hour === k : f.day === k;
+    const segs = opList.filter(o => bk[o]).map(o => `<i style="flex:${bk[o]};background:${opColor[o]}"></i>`).join('');
+    const tip = esc(tipFn(k)) + ': <b>' + t + '</b>' + opList.filter(o => bk[o]).map(o => `<br><span style="color:${opColor[o]}">●</span> ${esc(o)}: ${bk[o]}`).join('');
+    return `<div class="sbw${t ? '' : ' zero'}${sel ? ' sel' : ''}" style="height:${t ? Math.max(4, t / max * 100) : 1.5}%;--n:${i}" ${t ? `onclick="pick('${g}','${k}')"` : ''}><div class="sbar">${segs}</div><span class="tip">${tip}</span></div>`;
+  }).join('')}</div><div class="axis">${keys.map((k, i) => `<span>${showFn(i) ? esc(axisFn(k)) : ''}</span>`).join('')}</div>`;
+  $('oplegend').innerHTML = used.map(o => `<button class="lg${f.op === o ? ' on' : ''}" onclick="pick('op',${opIdx(o)})">${opDot(o)}${esc(o)}</button>`).join('');
+}
+
+function renderOpTable() {
+  const el = $('optable'), m = {};
+  rowsNoOp.forEach(r => {
+    const o = m[r._op] = m[r._op] || { n: 0, nums: new Set(), days: new Set(), h: Array(24).fill(0), last: null, ext: new Set() };
+    o.n++; o.nums.add(r.number); o.days.add(dayKey(r._d)); o.h[r._d.getHours()]++;
+    if (!o.last || r._d > o.last) o.last = r._d;
+    if (r.agent_ext) o.ext.add(String(r.agent_ext).trim());
+  });
+  const list = Object.keys(m).sort((a, b) => a === UNK ? 1 : b === UNK ? -1 : m[b].n - m[a].n), tot = rowsNoOp.length;
+  if (!list.length) { el.innerHTML = '<div class="empty">Nessun dato.</div>'; return; }
+  el.innerHTML = `<table><tr><th>Operatore</th><th>Interno</th><th>Chiamate</th><th>Quota</th><th>Numeri diversi</th><th>Giorni attivi</th><th>Media/giorno</th><th>Ora di punta</th><th>Ultima chiamata</th></tr>${list.map(o => {
+    const x = m[o], pk = x.h.indexOf(Math.max(...x.h));
+    return `<tr class="click${f.op === o ? ' selrow' : f.op ? ' dimrow' : ''}" onclick="pick('op',${opIdx(o)})"><td>${opDot(o)}${o === UNK ? '<span class="unk">' + UNK + '</span>' : esc(o)}</td><td>${x.ext.size ? esc([...x.ext].join(', ')) : '<span class="unk">–</span>'}</td><td><span class="pill">${x.n}</span></td><td class="num">${Math.round(x.n / tot * 100)}%</td><td class="num">${x.nums.size}</td><td class="num">${x.days.size}</td><td class="num">${(x.n / x.days.size).toFixed(1).replace('.', ',')}</td><td class="num">${pad(pk)}:00</td><td>${fmtWhen(x.last)}</td></tr>`;
+  }).join('')}</table>`;
+}
+
+function renderOpHeat() {
+  const el = $('opheat');
+  const data = rows.filter(r => (f.wd === null || (r._d.getDay() + 6) % 7 === f.wd) && (!f.day || dayKey(r._d).startsWith(f.day)));
+  if (!data.length) { el.innerHTML = '<div class="empty">Nessun dato.</div>'; return; }
+  let h0 = 23, h1 = 0; const g = {};
+  data.forEach(r => { const h = r._d.getHours(); h0 = Math.min(h0, h); h1 = Math.max(h1, h); (g[r._op] = g[r._op] || Array(24).fill(0))[h]++; });
+  const ops = opList.filter(o => g[o]);
+  let max = 1; ops.forEach(o => g[o].forEach(v => { if (v > max) max = v; }));
+  const hrs = []; for (let h = h0; h <= h1; h++) hrs.push(h);
+  el.innerHTML = `<table class="heat"><tr><th>Operatore</th>${hrs.map(h => `<th>${pad(h)}</th>`).join('')}<th>Tot.</th></tr>${ops.map(o =>
+    `<tr><td>${opDot(o)}${o === UNK ? '<span class="unk">' + UNK + '</span>' : esc(o)}</td>${hrs.map(h => {
+      const v = g[o][h]; if (!v) return '<td class="z">·</td>';
+      const p = v / max;
+      return `<td class="c" title="${esc(o)} · ${pad(h)}:00 · ${v} chiamate" style="background:color-mix(in srgb,var(--primary) ${Math.round(12 + p * 80)}%,transparent);${p > .55 ? 'color:#fff' : ''}" onclick="f.op=opList[${opIdx(o)}];f.hour=${h};listLimit=50;render(false)">${v}</td>`;
+    }).join('')}<td class="num" style="text-align:center">${g[o].reduce((x, y) => x + y, 0)}</td></tr>`).join('')}</table>`;
+}
+
+// ── Scheda cliente + note ────────────────────────────────────────
+let noteDraft = { num: null, op: '', note: '', tool: '', open: false };
+try { noteDraft.op = localStorage.getItem('crm_operator') || ''; } catch (e) {}
+let clientToken = 0;
+function selectedNumber() {
+  const q = $('q').value.trim();
+  if (!q) return null;
+  const lq = q.toLowerCase(), digits = q.replace(/[\s.\-()]/g, '');
+  const set = new Set(rows.map(r => r.number));
+  Object.values(contacts).forEach(c => { if ((c.name || '').toLowerCase().includes(lq) || (digits.length >= 4 && c.number.includes(digits))) set.add(c.number); });
+  if (contacts[digits]) return digits;
+  return set.size === 1 ? [...set][0] : null;
+}
+async function renderClient() {
+  const box = $('client'), n = selectedNumber(), token = ++clientToken;
+  if (!n) { box.style.display = 'none'; return; }
+  const c = contacts[n];
+  let notes = notesCache[n];
+  if (!notes) {
+    box.style.display = 'block';
+    box.innerHTML = '<div class="loading">Caricamento scheda…</div>';
+    try {
+      const { data, error } = await sb.from('call_notes').select('call_date,operator,note,id_tools').eq('number', n).order('call_date', { ascending: false }).limit(100);
+      if (error) throw error;
+      notes = notesCache[n] = data;
+    } catch (e) { if (token === clientToken) box.innerHTML = `<div class="empty" style="color:#dc2626">Errore nel caricamento delle note: ${esc(e.message)}</div>`; return; }
+  }
+  if (token !== clientToken) return;
+  if (noteDraft.num !== n) { noteDraft.num = n; noteDraft.note = ''; noteDraft.tool = ''; noteDraft.open = false; }
+  const name = c?.name || '';
+  const byOpC = {}; rows.forEach(r => { if (r.number === n) byOpC[r._op] = (byOpC[r._op] || 0) + 1; });
+  const byOpHtml = hasAgent && Object.keys(byOpC).length ? `<div class="gen"><b>Chiamate gestite da</b>${Object.entries(byOpC).sort((a, b) => b[1] - a[1]).map(([o, v]) => `<span class="oc">${opDot(o)}${esc(o)} <strong>${v}</strong></span>`).join('')}</div>` : '';
+  box.style.display = 'block';
+  box.innerHTML = `
+    <div class="top">
+      <div class="av">${esc((name || '?').charAt(0).toUpperCase())}</div>
+      <div style="flex:1;min-width:0">
+        <div class="nm">${name ? esc(name) : '<span class="unk">Cliente non in rubrica</span>'}${c?.usa_medea3 ? '<span class="m3">MedEA 3</span>' : ''}</div>
+        <div class="sub">📞 ${esc(n)}${c?.address ? ' · 📍 ' + esc(c.address) : ''}</div>
+      </div>
+      <div class="acts"><button class="btn" onclick="copyNum('${esc(n)}')">⧉ Copia</button><button class="btn" onclick="openAdd('${esc(n)}')">✏️ ${c ? 'Modifica' : 'Aggiungi'}</button></div>
+    </div>
+    ${c?.notes ? `<div class="gen"><b>Note generali</b>${esc(c.notes)}</div>` : ''}
+    ${byOpHtml}
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:14px 0 8px;gap:8px"><h3 style="margin:0">Note assistenza (${notes.length})</h3><button class="btn" onclick="toggleNoteForm()">${noteDraft.open ? '✕ Chiudi' : '➕ Nuova nota'}</button></div>
+    ${noteDraft.open ? `<div class="nform"><div class="r"><input id="nf-op" placeholder="Operatore *" value="${esc(noteDraft.op)}" oninput="noteDraft.op=this.value"><input id="nf-tool" placeholder="ID Tools" value="${esc(noteDraft.tool)}" oninput="noteDraft.tool=this.value"></div><textarea id="nf-note" placeholder="Descrivi l'intervento effettuato…" oninput="noteDraft.note=this.value">${esc(noteDraft.note)}</textarea><div class="msg" id="nf-msg"></div><div style="text-align:right"><button class="btn go" id="nf-save" onclick="saveNote('${esc(n)}')">✅ Salva nota</button></div></div>` : ''}
+    ${notes.length ? notes.map(x => `<div class="cn"><div class="meta">${x.operator ? '<b>' + esc(x.operator) + '</b> · ' : ''}${new Date(x.call_date).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}${x.id_tools ? '<span class="tool">🔧 ' + esc(x.id_tools) + '</span>' : ''}</div><div class="tx">${esc(x.note)}</div></div>`).join('') : '<div class="empty" style="padding:10px 0">Nessuna nota assistenza per questo numero.</div>'}`;
+}
+function toggleNoteForm() {
+  noteDraft.open = !noteDraft.open;
+  renderClient();
+  if (noteDraft.open) setTimeout(() => $(noteDraft.op ? 'nf-note' : 'nf-op')?.focus(), 30);
+}
+async function saveNote(n) {
+  const op = noteDraft.op.trim(), note = noteDraft.note.trim(), msg = $('nf-msg');
+  const bad = t => { msg.textContent = t; msg.className = 'msg ko'; };
+  if (!op) { bad("Inserisci il nome dell'operatore."); $('nf-op').focus(); return; }
+  if (!note) { bad('Scrivi la nota prima di salvare.'); $('nf-note').focus(); return; }
+  const btn = $('nf-save'); btn.disabled = true;
+  try {
+    const { error } = await sb.from('call_notes').insert({ number: n, operator: op, note, id_tools: noteDraft.tool.trim() || null });
+    if (error) throw error;
+    try { localStorage.setItem('crm_operator', op); } catch (e) {}
+    noteDraft.note = ''; noteDraft.tool = ''; noteDraft.open = false;
+    delete notesCache[n];
+    toast('✅ Nota salvata');
+    renderClient();
+  } catch (e) { bad('Errore nel salvataggio: ' + e.message); btn.disabled = false; }
+}
+function copyNum(n) {
+  const done = () => toast('Numero copiato: ' + n);
+  if (navigator.clipboard) navigator.clipboard.writeText(n).then(done, done);
+  else { const t = document.createElement('textarea'); t.value = n; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); done(); }
+}
+
+function renderAddBar() {
+  const bar = $('addbar'), n = $('q').value.trim().replace(/[\s.\-()]/g, '');
+  if (/^\+?\d{4,}$/.test(n) && !contacts[n]) {
+    bar.innerHTML = `<span>Il numero <b>${esc(n)}</b> non è in rubrica: quando chiamerà, il CRM non lo riconoscerà.</span><button class="btn go" onclick="openAdd('${esc(n)}')">➕ Aggiungi in rubrica</button>`;
+    bar.style.display = 'flex';
+  } else bar.style.display = 'none';
+}
+
+// ── Aggiungi / modifica numero ───────────────────────────────────
+let addEditing = null;
+function openAdd(pre) {
+  const c = typeof pre === 'string' && pre ? contacts[pre] : null;
+  addEditing = c ? pre : null;
+  $('a-title').textContent = c ? 'Modifica contatto' : 'Aggiungi numero in rubrica';
+  $('a-num').value = typeof pre === 'string' ? pre : '';
+  $('a-name').value = c?.name || ''; $('a-addr').value = c?.address || ''; $('a-notes').value = c?.notes || '';
+  $('a-m3').checked = !!c?.usa_medea3;
+  setAddMsg('', '');
+  $('addm').classList.add('open');
+  setTimeout(() => $(typeof pre === 'string' && pre ? 'a-name' : 'a-num').focus(), 50);
+}
+function closeAdd() { $('addm').classList.remove('open'); }
+function setAddMsg(t, c) { const m = $('a-msg'); m.textContent = t; m.className = 'msg ' + c; }
+async function saveAdd() {
+  const number = $('a-num').value.replace(/\s+/g, '');
+  if (!number) { setAddMsg('Inserisci il numero.', 'ko'); return; }
+  if (contacts[number] && addEditing !== number && !confirm(`Il numero ${number} è già in rubrica come "${contacts[number].name || 'senza nome'}". Aggiornarlo?`)) return;
+  const payload = { number, name: $('a-name').value.trim() || null, address: $('a-addr').value.trim() || null, notes: $('a-notes').value.trim() || null, usa_medea3: $('a-m3').checked };
+  const btn = $('a-save'); btn.disabled = true;
+  try {
+    const { error } = await sb.from('contacts').upsert(payload, { onConflict: 'number' });
+    if (error) throw error;
+    const wasEditing = addEditing === number;
+    contacts[number] = payload;
+    render(false);
+    if (wasEditing) { closeAdd(); toast('Contatto aggiornato'); }
+    else {
+      setAddMsg(`Salvato: ${number}${payload.name ? ' · ' + payload.name : ''}. Puoi aggiungerne un altro.`, 'ok');
+      ['a-num', 'a-name', 'a-addr', 'a-notes'].forEach(i => $(i).value = ''); $('a-m3').checked = false; addEditing = null;
+      $('a-num').focus();
+    }
+  } catch (e) { setAddMsg('Errore nel salvataggio: ' + e.message, 'ko'); }
+  finally { btn.disabled = false; }
+}
+$('a-num').addEventListener('input', () => {
+  const n = $('a-num').value.replace(/\s+/g, '');
+  if (contacts[n] && addEditing !== n) setAddMsg(`Già in rubrica come "${contacts[n].name || 'senza nome'}": verrà aggiornato.`, 'warn'); else setAddMsg('', '');
+});
+
+// ── Ricerca + suggerimenti ───────────────────────────────────────
+let sgItems = [], sgIdx = -1, qT;
+function syncSearchUi() { const has = !!$('q').value; $('qx').style.display = has ? 'block' : 'none'; $('kbd').style.display = has ? 'none' : ''; }
+function hideSugg() { $('sugg').style.display = 'none'; sgIdx = -1; }
+function showSugg() {
+  const q = $('q').value.trim();
+  if (q.length < 2) return hideSugg();
+  const lq = q.toLowerCase(), dg = q.replace(/[\s.\-()]/g, '');
+  sgItems = Object.values(contacts).filter(c => (c.name || '').toLowerCase().includes(lq) || (dg.length >= 3 && c.number.includes(dg))).slice(0, 7);
+  if (!sgItems.length) return hideSugg();
+  sgIdx = -1;
+  $('sugg').innerHTML = sgItems.map((c, i) => `<div onmousedown="setQuery('${esc(c.number)}')"><span>${c.name ? esc(c.name) : '<span class="unk">Senza nome</span>'}${c.usa_medea3 ? '<span class="m3">MedEA 3</span>' : ''}</span><small>${esc(c.number)}</small></div>`).join('');
+  $('sugg').style.display = 'block';
+}
+function setQuery(n) { $('q').value = n; hideSugg(); syncSearchUi(); clearTimeout(qT); load(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+$('q').addEventListener('input', () => { syncSearchUi(); showSugg(); clearTimeout(qT); qT = setTimeout(load, 450); });
+$('q').addEventListener('blur', () => setTimeout(hideSugg, 120));
+$('q').addEventListener('keydown', e => {
+  const els = $('sugg').children;
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    if (!els.length || $('sugg').style.display === 'none') return;
+    e.preventDefault();
+    sgIdx = (sgIdx + (e.key === 'ArrowDown' ? 1 : -1) + els.length) % els.length;
+    [...els].forEach((el, i) => el.classList.toggle('on', i === sgIdx));
+  } else if (e.key === 'Enter') {
+    if (sgIdx >= 0 && sgItems[sgIdx]) setQuery(sgItems[sgIdx].number); else { hideSugg(); clearTimeout(qT); load(); }
+  } else if (e.key === 'Escape') { $('q').value = ''; hideSugg(); syncSearchUi(); load(); }
+});
+$('qx').addEventListener('click', () => { $('q').value = ''; hideSugg(); syncSearchUi(); load(); $('q').focus(); });
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); $('q').focus(); }
+  if (e.key === 'Escape') closeAdd();
+});
+
+// ── Periodo, grafici, live, tema ─────────────────────────────────
+$('group').addEventListener('change', () => { f.day = null; render(false); });
+$('presets').addEventListener('click', e => {
+  const p = e.target.dataset.p; if (!p) return;
+  preset = p;
+  document.querySelectorAll('#presets button').forEach(b => b.classList.toggle('on', b === e.target));
+  $('dates').classList.toggle('show', p === 'custom');
+  if (p === 'custom' && !$('d1').value) {
+    $('d2').value = dayKey(new Date());
+    $('d1').value = dayKey(new Date(Date.now() - 29 * 864e5));
+  }
+  load();
+});
+['d1', 'd2'].forEach(id => $(id).addEventListener('change', () => load()));
+
+function toggleTheme() {
+  const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+  try { localStorage.setItem('crm_theme', t); } catch (e) {}
+}
+
+function exportCsv() {
+  if (!view.length) return toast('Nessuna chiamata da esportare');
+  const lines = ['data;ora;numero;cliente;operatore;interno', ...view.map(r => [r._d.toLocaleDateString('it-IT'), r._d.toLocaleTimeString('it-IT'), r.number, nameOf(r.number), r._op === UNK ? '' : r._op, r.agent_ext || ''].map(v => `"${String(v).replace(/"/g, '""')}"`).join(';'))];
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8' }));
+  a.download = `chiamate_${dayKey(new Date())}.csv`;
+  a.click();
+}
+
+$('today-lbl').textContent = new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+start(INLINE_CONFIG);
+</script>
+</body>
+</html>
