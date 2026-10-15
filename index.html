@@ -166,6 +166,23 @@ tr.dimrow td{opacity:.45}
 #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(16px);background:rgba(15,23,42,.94);color:#fff;padding:11px 20px;border-radius:30px;font-size:13px;font-weight:600;box-shadow:0 8px 28px rgba(0,0,0,.3);opacity:0;transition:all .3s;pointer-events:none;z-index:200;white-space:nowrap}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+header{background:var(--surface);color:var(--text);padding:12px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:40}
+.logo{border:1px solid var(--border);padding:5px 10px}.logo img{height:26px}
+.ttl h1{font-size:17px;letter-spacing:0}.ttl p{opacity:1;color:var(--muted)}
+.hb{background:var(--soft2);color:var(--text);border-color:var(--border);backdrop-filter:none}
+.hb:hover{background:var(--soft)}.hb.go{background:var(--primary);color:#fff;border-color:transparent}
+.wrap{margin:16px auto 0}.card{box-shadow:none}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.kpi{display:block;box-shadow:none;border-bottom:1px solid var(--border);padding:14px 16px}
+.kpi:hover{transform:none;box-shadow:none}.kpi .v{font-size:26px}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:14px;overflow-x:auto}
+.tabs button{border:0;background:none;font:inherit;font-size:14px;font-weight:600;color:var(--muted);padding:10px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tabs button:hover{color:var(--text)}.tabs button.on{color:var(--primary-d);border-bottom-color:var(--primary)}
+.tabs .hint{margin-left:auto;align-self:center;white-space:nowrap}
+.tab{display:none}.tab.on{display:block}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+@media(max-width:760px){.tabs .hint{display:none}.hb{padding:8px 10px}}
 </style>
 </head>
 <body>
@@ -173,10 +190,10 @@ tr.dimrow td{opacity:.45}
   <div class="hin">
     <div class="logo"><img src="https://www.medeatelemedicina.com/wp-content/uploads/2024/06/Logo-MedEA-Telemedicina.svg" alt="MedEA" onerror="this.parentNode.style.display='none'"></div>
     <div class="ttl"><h1>Statistiche chiamate</h1><p id="today-lbl"></p></div>
-    <button class="hb" onclick="openAdd()">➕ Aggiungi numero</button>
-    <button class="hb" onclick="exportCsv()">⬇ CSV</button>
-    <button class="hb" onclick="load()" title="Aggiorna">↻</button>
-    <button class="hb" id="theme-btn" onclick="toggleTheme()" title="Tema chiaro/scuro">🌓</button>
+    <button class="hb go" onclick="openAdd()">+ Aggiungi numero</button>
+    <button class="hb" onclick="exportCsv()">Esporta CSV</button>
+    <button class="hb" onclick="load()" title="Aggiorna" aria-label="Aggiorna">↻</button>
+    <button class="hb" onclick="toggleTheme()" title="Tema chiaro/scuro" aria-label="Cambia tema">🌓</button>
   </div>
 </header>
 
@@ -210,34 +227,42 @@ tr.dimrow td{opacity:.45}
 
   <div class="kpis" id="kpis"></div>
 
-  <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:10px">
-      <h2 id="chartTitle" style="margin:0">Chiamate per giorno</h2>
-      <select id="group"><option value="day">Per giorno</option><option value="month">Per mese</option></select>
+  <nav class="tabs" id="tabs">
+    <button data-t="over" class="on">Panoramica</button>
+    <button data-t="ops">Operatori</button>
+    <button data-t="calls">Chiamate</button>
+    <span class="hint">Clicca barre, righe e celle per filtrare</span>
+  </nav>
+
+  <section class="tab on" id="t-over">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:10px">
+        <h2 id="chartTitle" style="margin:0">Chiamate per giorno</h2>
+        <select id="group"><option value="day">Per giorno</option><option value="month">Per mese</option></select>
+      </div>
+      <div id="chart"></div>
     </div>
-    <div id="chart"></div>
-  </div>
+    <div class="grid2" id="over2">
+      <div class="card"><h2>Per fascia oraria</h2><div id="hours"></div></div>
+      <div class="card"><h2>Per giorno della settimana</h2><div id="wdays"></div></div>
+    </div>
+  </section>
 
-  <div class="note" id="opmissing">Nella tabella <b>call_log</b> mancano le colonne <b>agent_ext</b> / <b>agent_name</b>: le statistiche per operatore non sono disponibili. Esegui su Supabase: <code>ALTER TABLE call_log ADD COLUMN IF NOT EXISTS agent_ext TEXT; ALTER TABLE call_log ADD COLUMN IF NOT EXISTS agent_name TEXT;</code></div>
-
-  <div id="opsec">
-    <div class="grid2">
-      <div class="card"><h2>Chiamate per operatore <span class="hint">clicca per filtrare</span></h2><div class="scroll" id="opbars"></div><div class="mut" id="opunk"></div></div>
+  <section class="tab" id="t-ops">
+    <div class="note" id="opmissing">Nella tabella <b>call_log</b> mancano le colonne <b>agent_ext</b> / <b>agent_name</b>: le statistiche per operatore non sono disponibili. Esegui su Supabase: <code>ALTER TABLE call_log ADD COLUMN IF NOT EXISTS agent_ext TEXT; ALTER TABLE call_log ADD COLUMN IF NOT EXISTS agent_name TEXT;</code></div>
+    <div id="opsec">
       <div class="card"><h2 id="optimeTitle">Andamento per operatore</h2><div id="optime"></div><div class="legend" id="oplegend"></div></div>
+      <div class="card"><h2>Riepilogo operatori</h2><div class="scroll" id="optable"></div><div class="mut" id="opunk"></div></div>
+      <div class="card"><h2>Operatori per fascia oraria</h2><div class="scroll" id="opheat"></div></div>
     </div>
-    <div class="card"><h2>Dettaglio operatori</h2><div class="scroll" id="optable"></div></div>
-    <div class="card"><h2>Operatori per fascia oraria <span class="hint">clicca una cella per filtrare operatore e ora</span></h2><div class="scroll" id="opheat"></div></div>
-  </div>
+  </section>
 
-  <div class="grid2">
-    <div class="card"><h2>Per fascia oraria <span class="hint">clicca una barra per filtrare</span></h2><div id="hours"></div></div>
-    <div class="card"><h2>Per giorno della settimana <span class="hint">clicca per filtrare</span></h2><div id="wdays"></div></div>
-  </div>
-
-  <div class="grid2">
-    <div class="card"><h2>Numeri che chiamano di più</h2><div class="scroll" id="top"></div></div>
-    <div class="card"><h2>Ultime chiamate</h2><div class="scroll" id="recent"></div><div class="more" id="more" style="display:none"><button class="btn" onclick="showMore()">Mostra altre</button></div></div>
-  </div>
+  <section class="tab" id="t-calls">
+    <div class="grid2">
+      <div class="card"><h2>Ultime chiamate</h2><div class="scroll" id="recent"></div><div class="more" id="more" style="display:none"><button class="btn" onclick="showMore()">Mostra altre</button></div></div>
+      <div class="card"><h2>Numeri che chiamano di più</h2><div class="scroll" id="top"></div></div>
+    </div>
+  </section>
 </div>
 
 <div class="modal" id="addm" onmousedown="if(event.target===this)closeAdd()">
@@ -252,8 +277,6 @@ tr.dimrow td{opacity:.45}
     <div class="msg" id="a-msg"></div>
     <div class="row"><button class="btn" onclick="closeAdd()">Chiudi</button><button class="btn go" id="a-save" onclick="saveAdd()">Salva in rubrica</button></div>
   </div>
-</div>
-
 </div>
 
 <div id="toast"></div>
@@ -338,7 +361,7 @@ async function load(silent) {
   const err = $('err'); err.style.display = 'none';
   if (silent !== true) {
     f = { hour: null, wd: null, day: null, op: null };
-    $('kpis').innerHTML = '<div class="kpi sk"></div>'.repeat(8);
+    $('kpis').innerHTML = '<div class="kpi sk"></div>'.repeat(4);
     $('chart').innerHTML = '<div class="kpi sk" style="min-height:170px"></div>';
   }
   try {
@@ -405,7 +428,7 @@ function render(anim) {
   $('opsec').style.display = hasAgent ? '' : 'none';
   $('opmissing').style.display = hasAgent ? 'none' : 'block';
   renderChips(); renderOpSel(); renderKpis(a); renderChart(a);
-  if (hasAgent) { renderOpBars(); renderOpTime(a); renderOpTable(); renderOpHeat(); }
+  if (hasAgent) { renderOpTime(a); renderOpTable(); renderOpHeat(); }
   renderHours(a); renderWdays(a); renderTop(); renderRecent(); renderAddBar(); renderClient();
 }
 
@@ -453,23 +476,16 @@ function renderKpis(anim) {
     nDays = Math.max(1, Math.round((new Date(last.getFullYear(), last.getMonth(), last.getDate()) - new Date(first.getFullYear(), first.getMonth(), first.getDate())) / 864e5) + 1);
   }
   const items = [
-    { i: '📞', c: '#2563eb', l: 'Chiamate totali', n: total, s: searching ? 'storico completo' : filtered ? 'con i filtri attivi' : 'nel periodo' },
-    { i: '☀️', c: '#f59e0b', l: 'Oggi', n: byDay[dayKey(new Date())] || 0, s: 'chiamate ricevute' },
-    { i: '📈', c: '#10b981', l: 'Media al giorno', n: total ? total / nDays : 0, d: 1, s: `su ${nDays} giorni` },
-    { i: '👥', c: '#8b5cf6', l: 'Numeri diversi', n: uniq.size, s: 'chiamanti unici' },
-    { i: '🏆', c: '#ef4444', l: 'Giorno più intenso', n: best ? byDay[best] : null, t: '–', s: best ? fmtDay(best) : '' },
-    { i: '⏰', c: '#06b6d4', l: 'Ora di punta', t: total ? `${pad(peak)}:00` : '–', s: total ? `${hours[peak]} chiamate` : '' }
+    { l: 'Chiamate', n: total, s: searching ? 'storico completo' : filtered ? 'con i filtri attivi' : 'nel periodo' },
+    { l: 'Chiamanti unici', n: uniq.size, s: 'numeri diversi' },
+    ...(nDays > 1 ? [{ l: 'Media al giorno', n: total ? total / nDays : 0, d: 1, s: `su ${nDays} giorni` }] : []),
+    { l: 'Ora di punta', t: total ? `${pad(peak)}:00` : '–', s: total ? `${hours[peak]} chiamate` : '' }
   ];
   if (hasAgent) {
-    const byOp = {}; view.forEach(r => { if (r._op !== UNK) byOp[r._op] = (byOp[r._op] || 0) + 1; });
-    const ops = Object.keys(byOp).sort((a, b) => byOp[b] - byOp[a]), unk = view.filter(r => r._op === UNK).length;
-    items.push({ i: '🎧', c: '#14b8a6', l: 'Operatori attivi', n: ops.length, s: unk ? `${unk} chiamate senza operatore` : 'hanno risposto' });
-    items.push({ i: '🥇', c: '#f59e0b', l: 'Più chiamate gestite', t: ops.length ? ops[0] : '–', sm: 1, s: ops.length ? `${byOp[ops[0]]} chiamate · ${Math.round(byOp[ops[0]] / (total - unk) * 100)}%` : '' });
+    const ops = new Set(view.filter(r => r._op !== UNK).map(r => r._op)), unk = view.filter(r => r._op === UNK).length;
+    items.push({ l: 'Operatori attivi', n: ops.size, s: unk ? `${unk} chiamate senza operatore` : 'hanno risposto' });
   }
-  $('kpis').innerHTML = items.map(k => {
-    const val = k.n != null ? `<div class="v" data-n="${k.n}" data-d="${k.d || 0}">${k.d ? k.n.toFixed(k.d).replace('.', ',') : k.n}</div>` : `<div class="v${k.sm ? ' sm' : ''}" title="${esc(k.t)}">${esc(k.t)}</div>`;
-    return `<div class="kpi" style="--c:${k.c}"><div class="ic">${k.i}</div><div><div class="l">${k.l}</div>${val}<div class="s">${k.s}</div></div></div>`;
-  }).join('');
+  $('kpis').innerHTML = items.map(k => `<div class="kpi"><div class="l">${k.l}</div>${k.n != null ? `<div class="v" data-n="${k.n}" data-d="${k.d || 0}">${k.d ? k.n.toFixed(k.d).replace('.', ',') : k.n}</div>` : `<div class="v">${esc(k.t)}</div>`}<div class="s">${k.s}</div></div>`).join('');
   if (anim) document.querySelectorAll('#kpis .v[data-n]').forEach(countUp);
 }
 
@@ -499,7 +515,8 @@ function renderChart(anim) {
   const step = Math.ceil(seq.length / 14);
   el.innerHTML = bars(seq.map((k, i) => ({ v: counts[k] || 0, key: k, sel: f.day === k, tip: fmtDay(k), axis: mode === 'day' ? k.slice(8) + '/' + k.slice(5, 7) : fmtDay(k), show: i % step === 0 })), 'day', '', anim);
 }
-function renderHours(anim) { $('hours').innerHTML = bars(hourItems(), 'hour', 'short', anim); }
+function renderHours(anim) {
+  $('over2').style.display = new Set(rowsOp.map(r => dayKey(r._d))).size < 2 ? 'none' : ''; $('hours').innerHTML = bars(hourItems(), 'hour', 'short', anim); }
 function renderWdays(anim) {
   const w = Array(7).fill(0); rowsOp.forEach(r => w[(r._d.getDay() + 6) % 7]++);
   $('wdays').innerHTML = bars(w.map((v, i) => ({ v, key: i, sel: f.wd === i, tip: WD[i], axis: WD[i], show: true })), 'wd', 'short', anim);
@@ -533,18 +550,6 @@ function renderOpSel() {
   s.value = f.op ? String(opIdx(f.op)) : '';
 }
 $('opsel').addEventListener('change', e => { f.op = e.target.value === '' ? null : opList[+e.target.value]; listLimit = 50; render(false); });
-
-function renderOpBars() {
-  const el = $('opbars'), c = {};
-  rowsNoOp.forEach(r => c[r._op] = (c[r._op] || 0) + 1);
-  const list = Object.entries(c).sort((a, b) => a[0] === UNK ? 1 : b[0] === UNK ? -1 : b[1] - a[1]);
-  if (!list.length) { el.innerHTML = '<div class="empty">Nessun dato.</div>'; $('opunk').textContent = ''; return; }
-  const max = Math.max(...list.map(x => x[1])), tot = rowsNoOp.length;
-  el.innerHTML = `<table><tr><th>Operatore</th><th style="width:50%">Chiamate</th></tr>${list.map(([o, v]) =>
-    `<tr class="click${f.op === o ? ' selrow' : f.op ? ' dimrow' : ''}" onclick="pick('op',${opIdx(o)})"><td>${opDot(o)}${o === UNK ? '<span class="unk">' + UNK + '</span>' : esc(o)}</td><td><span class="pill">${v}</span> <small style="color:var(--faint)">${Math.round(v / tot * 100)}%</small><div class="meter"><i style="width:${v / max * 100}%;background:${opColor[o]}"></i></div></td></tr>`).join('')}</table>`;
-  const u = c[UNK] || 0;
-  $('opunk').textContent = u ? `${u} chiamate (${Math.round(u / tot * 100)}%) senza operatore: registrate prima che il CRM passasse il nome, oppure da un interno non rilevato.` : '';
-}
 
 function seqFor(data, mode) {
   const keyOf = r => mode === 'day' ? dayKey(r._d) : dayKey(r._d).slice(0, 7);
@@ -593,10 +598,13 @@ function renderOpTable() {
   });
   const list = Object.keys(m).sort((a, b) => a === UNK ? 1 : b === UNK ? -1 : m[b].n - m[a].n), tot = rowsNoOp.length;
   if (!list.length) { el.innerHTML = '<div class="empty">Nessun dato.</div>'; return; }
-  el.innerHTML = `<table><tr><th>Operatore</th><th>Interno</th><th>Chiamate</th><th>Quota</th><th>Numeri diversi</th><th>Giorni attivi</th><th>Media/giorno</th><th>Ora di punta</th><th>Ultima chiamata</th></tr>${list.map(o => {
+  const mx = Math.max(...list.map(o => m[o].n));
+  el.innerHTML = `<table><tr><th>Operatore</th><th style="width:30%">Chiamate</th><th>Quota</th><th>Numeri diversi</th><th>Giorni attivi</th><th>Ora di punta</th><th>Ultima chiamata</th></tr>${list.map(o => {
     const x = m[o], pk = x.h.indexOf(Math.max(...x.h));
-    return `<tr class="click${f.op === o ? ' selrow' : f.op ? ' dimrow' : ''}" onclick="pick('op',${opIdx(o)})"><td>${opDot(o)}${o === UNK ? '<span class="unk">' + UNK + '</span>' : esc(o)}</td><td>${x.ext.size ? esc([...x.ext].join(', ')) : '<span class="unk">–</span>'}</td><td><span class="pill">${x.n}</span></td><td class="num">${Math.round(x.n / tot * 100)}%</td><td class="num">${x.nums.size}</td><td class="num">${x.days.size}</td><td class="num">${(x.n / x.days.size).toFixed(1).replace('.', ',')}</td><td class="num">${pad(pk)}:00</td><td>${fmtWhen(x.last)}</td></tr>`;
+    return `<tr class="click${f.op === o ? ' selrow' : f.op ? ' dimrow' : ''}" onclick="pick('op',${opIdx(o)})"><td>${opDot(o)}${o === UNK ? '<span class="unk">' + UNK + '</span>' : esc(o)}</td><td><span class="pill">${x.n}</span><div class="meter"><i style="width:${x.n / mx * 100}%;background:${opColor[o]}"></i></div></td><td class="num">${Math.round(x.n / tot * 100)}%</td><td class="num">${x.nums.size}</td><td class="num">${x.days.size}</td><td class="num">${pad(pk)}:00</td><td>${fmtWhen(x.last)}</td></tr>`;
   }).join('')}</table>`;
+  const u = m[UNK] ? m[UNK].n : 0;
+  $('opunk').textContent = u ? `${u} chiamate (${Math.round(u / tot * 100)}%) senza operatore: registrate prima che il CRM passasse il nome, oppure da un interno non rilevato.` : '';
 }
 
 function renderOpHeat() {
@@ -788,6 +796,12 @@ $('presets').addEventListener('click', e => {
   load();
 });
 ['d1', 'd2'].forEach(id => $(id).addEventListener('change', () => load()));
+
+$('tabs').addEventListener('click', e => {
+  const t = e.target.dataset.t; if (!t) return;
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b === e.target));
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x.id === 't-' + t));
+});
 
 function toggleTheme() {
   const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
