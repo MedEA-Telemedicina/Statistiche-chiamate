@@ -173,16 +173,16 @@ header{background:var(--surface);color:var(--text);padding:12px 16px;border-bott
 .hb{background:var(--soft2);color:var(--text);border-color:var(--border);backdrop-filter:none}
 .hb:hover{background:var(--soft)}.hb.go{background:var(--primary);color:#fff;border-color:transparent}
 .wrap{margin:16px auto 0}.card{box-shadow:none}
-.kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
-.kpi{display:block;box-shadow:none;border-bottom:1px solid var(--border);padding:14px 16px}
-.kpi:hover{transform:none;box-shadow:none}.kpi .v{font-size:26px}
-.tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:14px;overflow-x:auto}
-.tabs button{border:0;background:none;font:inherit;font-size:14px;font-weight:600;color:var(--muted);padding:10px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
-.tabs button:hover{color:var(--text)}.tabs button.on{color:var(--primary-d);border-bottom-color:var(--primary)}
-.tabs .hint{margin-left:auto;align-self:center;white-space:nowrap}
-.tab{display:none}.tab.on{display:block}
 button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
-@media(max-width:760px){.tabs .hint{display:none}.hb{padding:8px 10px}}
+@media(max-width:760px){.hb{padding:8px 10px}}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.actions .btn{background:var(--surface);color:var(--text);padding:10px 16px;font-size:13.5px}
+.actions .btn:hover{border-color:var(--primary);color:var(--primary-d)}
+.modal .box.wide{max-width:940px;padding:22px}
+.mh{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px}
+.mh h3{margin:0;font-size:18px}
+.psec{margin-top:20px}.psec h2{font-size:13.5px;font-weight:700;color:var(--muted);margin-bottom:10px}
+.rk{width:34px;color:var(--faint);font-weight:700;font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body>
@@ -227,43 +227,44 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 
   <div class="kpis" id="kpis"></div>
 
-  <nav class="tabs" id="tabs">
-    <button data-t="over" class="on">Panoramica</button>
-    <button data-t="ops">Operatori</button>
-    <button data-t="calls">Chiamate</button>
-    <span class="hint">Clicca barre, righe e celle per filtrare</span>
-  </nav>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:10px">
+      <h2 id="chartTitle" style="margin:0">Chiamate per giorno</h2>
+      <select id="group"><option value="day">Per giorno</option><option value="month">Per mese</option></select>
+    </div>
+    <div id="chart"></div>
+  </div>
 
-  <section class="tab on" id="t-over">
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:10px">
-        <h2 id="chartTitle" style="margin:0">Chiamate per giorno</h2>
-        <select id="group"><option value="day">Per giorno</option><option value="month">Per mese</option></select>
-      </div>
-      <div id="chart"></div>
+  <div class="grid2">
+    <div class="card" id="oprankcard">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px"><h2 style="margin:0">Classifica operatori</h2><button class="btn" onclick="openPop('p-ops')">Dettaglio</button></div>
+      <div class="scroll" id="oprank"></div>
     </div>
-    <div class="grid2" id="over2">
-      <div class="card"><h2>Per fascia oraria</h2><div id="hours"></div></div>
-      <div class="card"><h2>Per giorno della settimana</h2><div id="wdays"></div></div>
-    </div>
-  </section>
+    <div class="card"><h2>Numeri che chiamano di più</h2><div class="scroll" id="top"></div></div>
+  </div>
 
-  <section class="tab" id="t-ops">
-    <div class="note" id="opmissing">Nella tabella <b>call_log</b> mancano le colonne <b>agent_ext</b> / <b>agent_name</b>: le statistiche per operatore non sono disponibili. Esegui su Supabase: <code>ALTER TABLE call_log ADD COLUMN IF NOT EXISTS agent_ext TEXT; ALTER TABLE call_log ADD COLUMN IF NOT EXISTS agent_name TEXT;</code></div>
-    <div id="opsec">
-      <div class="card"><h2 id="optimeTitle">Andamento per operatore</h2><div id="optime"></div><div class="legend" id="oplegend"></div></div>
-      <div class="card"><h2>Riepilogo operatori</h2><div class="scroll" id="optable"></div><div class="mut" id="opunk"></div></div>
-      <div class="card"><h2>Operatori per fascia oraria</h2><div class="scroll" id="opheat"></div></div>
-    </div>
-  </section>
+  <div class="grid2" id="over2">
+    <div class="card"><h2>Per fascia oraria</h2><div id="hours"></div></div>
+    <div class="card"><h2>Per giorno della settimana</h2><div id="wdays"></div></div>
+  </div>
 
-  <section class="tab" id="t-calls">
-    <div class="grid2">
-      <div class="card"><h2>Ultime chiamate</h2><div class="scroll" id="recent"></div><div class="more" id="more" style="display:none"><button class="btn" onclick="showMore()">Mostra altre</button></div></div>
-      <div class="card"><h2>Numeri che chiamano di più</h2><div class="scroll" id="top"></div></div>
-    </div>
-  </section>
+  <div class="card">
+    <h2>Ultime chiamate</h2>
+    <div class="scroll" id="recent"></div>
+    <div class="more" id="more" style="display:none"><button class="btn" onclick="showMore()">Mostra altre</button></div>
+  </div>
 </div>
+
+<div class="modal pop" id="p-ops" onmousedown="if(event.target===this)closePop()"><div class="box wide">
+  <div class="mh"><h3>Dettaglio operatori</h3><button class="btn" onclick="closePop()">Chiudi</button></div>
+  <div class="note" id="opmissing">Nella tabella <b>call_log</b> mancano le colonne <b>agent_ext</b> / <b>agent_name</b>: le statistiche per operatore non sono disponibili. Esegui su Supabase: <code>ALTER TABLE call_log ADD COLUMN IF NOT EXISTS agent_ext TEXT; ALTER TABLE call_log ADD COLUMN IF NOT EXISTS agent_name TEXT;</code></div>
+  <div id="opsec">
+    <p class="mut">Clicca un operatore, una barra o una cella per filtrare.</p>
+    <div class="psec"><h2 id="optimeTitle">Andamento per operatore</h2><div id="optime"></div><div class="legend" id="oplegend"></div></div>
+    <div class="psec"><h2>Riepilogo</h2><div class="scroll" id="optable"></div><div class="mut" id="opunk"></div></div>
+    <div class="psec"><h2>Per fascia oraria</h2><div class="scroll" id="opheat"></div></div>
+  </div>
+</div></div>
 
 <div class="modal" id="addm" onmousedown="if(event.target===this)closeAdd()">
   <div class="box">
@@ -361,7 +362,7 @@ async function load(silent) {
   const err = $('err'); err.style.display = 'none';
   if (silent !== true) {
     f = { hour: null, wd: null, day: null, op: null };
-    $('kpis').innerHTML = '<div class="kpi sk"></div>'.repeat(4);
+    $('kpis').innerHTML = '<div class="kpi sk"></div>'.repeat(8);
     $('chart').innerHTML = '<div class="kpi sk" style="min-height:170px"></div>';
   }
   try {
@@ -425,10 +426,10 @@ function render(anim) {
   rowsOp = f.op ? rows.filter(r => r._op === f.op) : rows;
   rowsNoOp = rows.filter(pass);
   view = rowsOp.filter(pass);
-  $('opsec').style.display = hasAgent ? '' : 'none';
+  $('opsec').style.display = hasAgent ? '' : 'none'; $('oprankcard').style.display = hasAgent ? '' : 'none';
   $('opmissing').style.display = hasAgent ? 'none' : 'block';
   renderChips(); renderOpSel(); renderKpis(a); renderChart(a);
-  if (hasAgent) { renderOpTime(a); renderOpTable(); renderOpHeat(); }
+  if (hasAgent) { renderOpRank(); renderOpTime(a); renderOpTable(); renderOpHeat(); }
   renderHours(a); renderWdays(a); renderTop(); renderRecent(); renderAddBar(); renderClient();
 }
 
@@ -476,16 +477,23 @@ function renderKpis(anim) {
     nDays = Math.max(1, Math.round((new Date(last.getFullYear(), last.getMonth(), last.getDate()) - new Date(first.getFullYear(), first.getMonth(), first.getDate())) / 864e5) + 1);
   }
   const items = [
-    { l: 'Chiamate', n: total, s: searching ? 'storico completo' : filtered ? 'con i filtri attivi' : 'nel periodo' },
-    { l: 'Chiamanti unici', n: uniq.size, s: 'numeri diversi' },
-    ...(nDays > 1 ? [{ l: 'Media al giorno', n: total ? total / nDays : 0, d: 1, s: `su ${nDays} giorni` }] : []),
-    { l: 'Ora di punta', t: total ? `${pad(peak)}:00` : '–', s: total ? `${hours[peak]} chiamate` : '' }
+    { i: '📞', c: '#2563eb', l: 'Chiamate totali', n: total, s: searching ? 'storico completo' : filtered ? 'con i filtri attivi' : 'nel periodo' },
+    { i: '☀️', c: '#f59e0b', l: 'Oggi', n: byDay[dayKey(new Date())] || 0, s: 'chiamate ricevute' },
+    { i: '📈', c: '#10b981', l: 'Media al giorno', n: total ? total / nDays : 0, d: 1, s: `su ${nDays} giorni` },
+    { i: '👥', c: '#8b5cf6', l: 'Numeri diversi', n: uniq.size, s: 'chiamanti unici' },
+    { i: '🏆', c: '#ef4444', l: 'Giorno più intenso', n: best ? byDay[best] : null, t: '–', s: best ? fmtDay(best) : '' },
+    { i: '⏰', c: '#06b6d4', l: 'Ora di punta', t: total ? `${pad(peak)}:00` : '–', s: total ? `${hours[peak]} chiamate` : '' }
   ];
   if (hasAgent) {
-    const ops = new Set(view.filter(r => r._op !== UNK).map(r => r._op)), unk = view.filter(r => r._op === UNK).length;
-    items.push({ l: 'Operatori attivi', n: ops.size, s: unk ? `${unk} chiamate senza operatore` : 'hanno risposto' });
+    const byOp = {}; view.forEach(r => { if (r._op !== UNK) byOp[r._op] = (byOp[r._op] || 0) + 1; });
+    const ops = Object.keys(byOp).sort((a, b) => byOp[b] - byOp[a]), unk = view.filter(r => r._op === UNK).length;
+    items.push({ i: '🎧', c: '#14b8a6', l: 'Operatori attivi', n: ops.length, s: unk ? `${unk} chiamate senza operatore` : 'hanno risposto' });
+    items.push({ i: '🥇', c: '#f59e0b', l: 'Più chiamate gestite', t: ops.length ? ops[0] : '–', sm: 1, s: ops.length ? `${byOp[ops[0]]} chiamate · ${Math.round(byOp[ops[0]] / (total - unk) * 100)}%` : '' });
   }
-  $('kpis').innerHTML = items.map(k => `<div class="kpi"><div class="l">${k.l}</div>${k.n != null ? `<div class="v" data-n="${k.n}" data-d="${k.d || 0}">${k.d ? k.n.toFixed(k.d).replace('.', ',') : k.n}</div>` : `<div class="v">${esc(k.t)}</div>`}<div class="s">${k.s}</div></div>`).join('');
+  $('kpis').innerHTML = items.map(k => {
+    const val = k.n != null ? `<div class="v" data-n="${k.n}" data-d="${k.d || 0}">${k.d ? k.n.toFixed(k.d).replace('.', ',') : k.n}</div>` : `<div class="v${k.sm ? ' sm' : ''}" title="${esc(k.t)}">${esc(k.t)}</div>`;
+    return `<div class="kpi" style="--c:${k.c}"><div class="ic">${k.i}</div><div><div class="l">${k.l}</div>${val}<div class="s">${k.s}</div></div></div>`;
+  }).join('');
   if (anim) document.querySelectorAll('#kpis .v[data-n]').forEach(countUp);
 }
 
@@ -527,8 +535,8 @@ function renderTop() {
   const list = Object.entries(c).sort((a, b) => b[1] - a[1]).slice(0, 50), el = $('top');
   if (!list.length) { el.innerHTML = '<div class="empty">Nessun dato.</div>'; return; }
   const max = list[0][1];
-  el.innerHTML = `<table><tr><th>Numero</th><th>Cliente</th><th style="width:34%">Chiamate</th></tr>${list.map(([n, v]) =>
-    `<tr class="click" onclick="setQuery('${esc(n)}')"><td class="num">${esc(n)}</td><td>${label(n)}${contacts[n]?.usa_medea3 ? '<span class="m3">MedEA 3</span>' : ''}</td><td><span class="pill">${v}</span><div class="meter"><i style="width:${v / max * 100}%"></i></div></td></tr>`).join('')}</table>`;
+  el.innerHTML = `<table><tr><th>#</th><th>Numero</th><th>Cliente</th><th style="width:34%">Chiamate</th></tr>${list.map(([n, v], i) =>
+    `<tr class="click" onclick="setQuery('${esc(n)}')"><td class="rk">${i + 1}</td><td class="num">${esc(n)}</td><td>${label(n)}${contacts[n]?.usa_medea3 ? '<span class="m3">MedEA 3</span>' : ''}</td><td><span class="pill">${v}</span><div class="meter"><i style="width:${v / max * 100}%"></i></div></td></tr>`).join('')}</table>`;
 }
 
 function renderRecent() {
@@ -550,6 +558,19 @@ function renderOpSel() {
   s.value = f.op ? String(opIdx(f.op)) : '';
 }
 $('opsel').addEventListener('change', e => { f.op = e.target.value === '' ? null : opList[+e.target.value]; listLimit = 50; render(false); });
+
+function renderOpRank() {
+  const el = $('oprank'), c = {};
+  rowsNoOp.forEach(r => c[r._op] = (c[r._op] || 0) + 1);
+  const list = Object.entries(c).sort((a, b) => a[0] === UNK ? 1 : b[0] === UNK ? -1 : b[1] - a[1]);
+  if (!list.length) { el.innerHTML = '<div class="empty">Nessun dato.</div>'; return; }
+  const max = Math.max(...list.map(x => x[1])), tot = rowsNoOp.length, medal = ['🥇', '🥈', '🥉'];
+  let pos = 0;
+  el.innerHTML = `<table><tr><th>#</th><th>Operatore</th><th style="width:48%">Chiamate</th></tr>${list.map(([o, v]) => {
+    const k = o === UNK ? '' : (medal[pos] || pos + 1); if (o !== UNK) pos++;
+    return `<tr class="click${f.op === o ? ' selrow' : f.op ? ' dimrow' : ''}" onclick="pick('op',${opIdx(o)})"><td class="rk">${k}</td><td>${opDot(o)}${o === UNK ? '<span class="unk">' + UNK + '</span>' : esc(o)}</td><td><span class="pill">${v}</span> <small style="color:var(--faint)">${Math.round(v / tot * 100)}%</small><div class="meter"><i style="width:${v / max * 100}%;background:${opColor[o]}"></i></div></td></tr>`;
+  }).join('')}</table>`;
+}
 
 function seqFor(data, mode) {
   const keyOf = r => mode === 'day' ? dayKey(r._d) : dayKey(r._d).slice(0, 7);
@@ -762,7 +783,7 @@ function showSugg() {
   $('sugg').innerHTML = sgItems.map((c, i) => `<div onmousedown="setQuery('${esc(c.number)}')"><span>${c.name ? esc(c.name) : '<span class="unk">Senza nome</span>'}${c.usa_medea3 ? '<span class="m3">MedEA 3</span>' : ''}</span><small>${esc(c.number)}</small></div>`).join('');
   $('sugg').style.display = 'block';
 }
-function setQuery(n) { $('q').value = n; hideSugg(); syncSearchUi(); clearTimeout(qT); load(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+function setQuery(n) { closePop(); $('q').value = n; hideSugg(); syncSearchUi(); clearTimeout(qT); load(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
 $('q').addEventListener('input', () => { syncSearchUi(); showSugg(); clearTimeout(qT); qT = setTimeout(load, 450); });
 $('q').addEventListener('blur', () => setTimeout(hideSugg, 120));
 $('q').addEventListener('keydown', e => {
@@ -779,7 +800,7 @@ $('q').addEventListener('keydown', e => {
 $('qx').addEventListener('click', () => { $('q').value = ''; hideSugg(); syncSearchUi(); load(); $('q').focus(); });
 document.addEventListener('keydown', e => {
   if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); $('q').focus(); }
-  if (e.key === 'Escape') closeAdd();
+  if (e.key === 'Escape') { closeAdd(); closePop(); }
 });
 
 // ── Periodo, grafici, live, tema ─────────────────────────────────
@@ -797,11 +818,8 @@ $('presets').addEventListener('click', e => {
 });
 ['d1', 'd2'].forEach(id => $(id).addEventListener('change', () => load()));
 
-$('tabs').addEventListener('click', e => {
-  const t = e.target.dataset.t; if (!t) return;
-  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b === e.target));
-  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x.id === 't-' + t));
-});
+function openPop(id) { $(id).classList.add('open'); }
+function closePop() { document.querySelectorAll('.pop.open').forEach(m => m.classList.remove('open')); }
 
 function toggleTheme() {
   const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
