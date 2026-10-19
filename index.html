@@ -48,6 +48,14 @@ header{background:linear-gradient(120deg,#0b1f4d 0%,#1d4ed8 62%,#0ea5e9 100%);co
 .btn.go{background:linear-gradient(135deg,var(--primary),var(--primary-d));color:#fff;border-color:transparent;box-shadow:0 3px 10px rgba(37,99,235,.35)}
 .btn.go:hover{filter:brightness(1.08)}
 .btn:disabled{opacity:.6}
+.dates input[type=datetime-local]{min-width:178px}
+.rr{display:none;margin-top:12px;align-items:center;gap:14px;flex-wrap:wrap;background:var(--soft);border:1.5px solid var(--border);border-radius:var(--rs);padding:12px 16px}
+.rr.show{display:flex}
+.rr .big{font-size:32px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;color:var(--primary-d);letter-spacing:-.5px}
+.rr .t{font-size:13px;color:var(--muted);line-height:1.5}
+.rr .t b{color:var(--text)}
+.rr .q{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+.rr .q .btn{padding:6px 10px;font-size:12px}
 .chips{display:none;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px;font-size:12.5px;color:var(--muted)}
 .chip{background:var(--soft);color:var(--primary-d);border-radius:20px;padding:4px 6px 4px 12px;font-weight:700;display:inline-flex;gap:6px;align-items:center;animation:pop .2s ease}
 .chip button{border:0;background:rgba(37,99,235,.15);color:inherit;border-radius:50%;width:18px;height:18px;cursor:pointer;font-size:11px;line-height:1}
@@ -216,8 +224,9 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
         <button data-p="custom">Personalizzato</button>
       </div>
       <select id="opsel" title="Filtra per operatore" style="display:none"></select>
-      <div class="dates" id="dates"><input type="date" id="d1"> <span>–</span> <input type="date" id="d2"></div>
+      <div class="dates" id="dates"><input type="datetime-local" id="d1" aria-label="Dal"> <span>–</span> <input type="datetime-local" id="d2" aria-label="Al"></div>
     </div>
+    <div class="rr" id="rr"></div>
     <div class="chips" id="chips"></div>
     <div class="addbar" id="addbar"></div>
     <div class="note" id="qnote">Con una ricerca attiva vengono considerate tutte le chiamate registrate, senza limite di periodo.</div>
@@ -335,7 +344,8 @@ function getRange() {
   if (preset === 'month') return [new Date(now.getFullYear(), now.getMonth(), 1), null];
   if (preset === 'custom') {
     const a = $('d1').value, b = $('d2').value;
-    return [a ? new Date(a + 'T00:00:00') : null, b ? new Date(new Date(b + 'T00:00:00').getTime() + 864e5) : null];
+    // datetime-local: l'estremo finale è incluso (fino alla fine di quel minuto)
+    return [a ? new Date(a) : null, b ? new Date(new Date(b).getTime() + 60000) : null];
   }
   return [null, null];
 }
@@ -369,7 +379,7 @@ async function load(silent) {
     if (!Object.keys(contacts).length) await loadContacts();
     const q = $('q').value.trim();
     searching = !!q;
-    $('qnote').style.display = q ? 'block' : 'none';
+    $('qnote').style.display = q && preset !== 'custom' ? 'block' : 'none';
     const [from, to] = getRange();
     const acc = [];
     let off = 0;
@@ -386,7 +396,8 @@ async function load(silent) {
         if (nums.length) parts.push(`number.in.(${nums.map(n => '"' + n.replace(/"/g, '') + '"').join(',')})`);
         if (!parts.length) break;
         req = req.or(parts.join(','));
-      } else {
+      }
+      if (!q || preset === 'custom') {
         if (from) req = req.gte('called_at', from.toISOString());
         if (to) req = req.lt('called_at', to.toISOString());
       }
@@ -428,7 +439,7 @@ function render(anim) {
   view = rowsOp.filter(pass);
   $('opsec').style.display = hasAgent ? '' : 'none'; $('oprankcard').style.display = hasAgent ? '' : 'none';
   $('opmissing').style.display = hasAgent ? 'none' : 'block';
-  renderChips(); renderOpSel(); renderKpis(a); renderChart(a);
+  renderChips(); renderRange(); renderOpSel(); renderKpis(a); renderChart(a);
   if (hasAgent) { renderOpRank(); renderOpTime(a); renderOpTable(); renderOpHeat(); }
   renderHours(a); renderWdays(a); renderTop(); renderRecent(); renderAddBar(); renderClient();
 }
@@ -452,6 +463,32 @@ function renderChips() {
   el.innerHTML = c.length ? 'Filtri attivi: ' + c.map(([g, t]) => `<span class="chip">${esc(t)}<button onclick="clearF('${g}')">✕</button></span>`).join('') + (c.length > 1 ? '<a href="#" onclick="clearF();return false" style="color:var(--primary-d);font-weight:600">Rimuovi tutti</a>' : '') : '';
 }
 
+const fmtDT = d => `${fmtDay(dayKey(d))} ${hhmm(d)}`;
+function setRange(a, b) {
+  $('d1').value = a ? dayKey(a) + 'T' + hhmm(a) : '';
+  $('d2').value = b ? dayKey(b) + 'T' + hhmm(b) : '';
+  load();
+}
+function quickRange(k) {
+  const n = new Date(), sod = new Date(n.getFullYear(), n.getMonth(), n.getDate());
+  if (k === 'h1') setRange(new Date(n - 36e5), n);
+  else if (k === 'h24') setRange(new Date(n - 864e5), n);
+  else if (k === 'yd') setRange(new Date(sod - 864e5), new Date(sod - 60000));
+  else if (k === 'd7') setRange(new Date(sod - 6 * 864e5), n);
+  else if (k === 'am') setRange(new Date(sod.getTime() + 0), new Date(sod.getTime() + 12 * 36e5 - 60000));
+  else if (k === 'pm') setRange(new Date(sod.getTime() + 12 * 36e5), new Date(sod.getTime() + 24 * 36e5 - 60000));
+}
+function renderRange() {
+  const el = $('rr');
+  if (preset !== 'custom') { el.classList.remove('show'); el.innerHTML = ''; return; }
+  const [fr, to] = getRange();
+  const a = fr ? fmtDT(fr) : 'l\'inizio', b = to ? fmtDT(new Date(to - 60000)) : 'adesso';
+  const tot = rows.length, shown = view.length;
+  const q = $('q').value.trim();
+  el.innerHTML = `<div class="big">${shown}</div><div class="t"><b>chiamate</b> dal <b>${a}</b> al <b>${b}</b>${q ? ` · numero/cliente “${esc(q)}”` : ''}${shown !== tot ? `<br>su ${tot} nell’intervallo (filtri attivi)` : ''}</div>`
+    + `<div class="q"><button class="btn" onclick="quickRange('h1')">Ultima ora</button><button class="btn" onclick="quickRange('h24')">Ultime 24 ore</button><button class="btn" onclick="quickRange('yd')">Ieri</button><button class="btn" onclick="quickRange('d7')">Ultimi 7 giorni</button><button class="btn" onclick="quickRange('am')">Oggi mattina</button><button class="btn" onclick="quickRange('pm')">Oggi pomeriggio</button></div>`;
+  el.classList.add('show');
+}
 function countUp(el) {
   const t = parseFloat(el.dataset.n), d = +el.dataset.d, t0 = performance.now(), dur = 650;
   const fmt = v => d ? v.toFixed(d).replace('.', ',') : Math.round(v);
@@ -470,14 +507,14 @@ function renderKpis(anim) {
   const peak = hours.indexOf(Math.max(...hours));
   const filtered = f.hour !== null || f.wd !== null || f.day || f.op;
   let nDays = days.length;
-  if (!searching && !filtered && total) {
+  if ((!searching || preset === 'custom') && !filtered && total) {
     const [fr, to] = getRange();
     const first = fr || new Date(Math.min(...view.map(r => r._d)));
     const last = to ? new Date(to - 1) : new Date();
     nDays = Math.max(1, Math.round((new Date(last.getFullYear(), last.getMonth(), last.getDate()) - new Date(first.getFullYear(), first.getMonth(), first.getDate())) / 864e5) + 1);
   }
   const items = [
-    { i: '📞', c: '#2563eb', l: 'Chiamate totali', n: total, s: searching ? 'storico completo' : filtered ? 'con i filtri attivi' : 'nel periodo' },
+    { i: '📞', c: '#2563eb', l: 'Chiamate totali', n: total, s: searching && preset !== 'custom' ? 'storico completo' : filtered ? 'con i filtri attivi' : 'nel periodo' },
     { i: '☀️', c: '#f59e0b', l: 'Oggi', n: byDay[dayKey(new Date())] || 0, s: 'chiamate ricevute' },
     { i: '📈', c: '#10b981', l: 'Media al giorno', n: total ? total / nDays : 0, d: 1, s: `su ${nDays} giorni` },
     { i: '👥', c: '#8b5cf6', l: 'Numeri diversi', n: uniq.size, s: 'chiamanti unici' },
@@ -811,8 +848,9 @@ $('presets').addEventListener('click', e => {
   document.querySelectorAll('#presets button').forEach(b => b.classList.toggle('on', b === e.target));
   $('dates').classList.toggle('show', p === 'custom');
   if (p === 'custom' && !$('d1').value) {
-    $('d2').value = dayKey(new Date());
-    $('d1').value = dayKey(new Date(Date.now() - 29 * 864e5));
+    const n = new Date();
+    $('d1').value = dayKey(n) + 'T00:00';
+    $('d2').value = dayKey(n) + 'T' + hhmm(n);
   }
   load();
 });
