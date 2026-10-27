@@ -191,6 +191,9 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .mh h3{margin:0;font-size:18px}
 .psec{margin-top:20px}.psec h2{font-size:13.5px;font-weight:700;color:var(--muted);margin-bottom:10px}
 .rk{width:34px;color:var(--faint);font-weight:700;font-variant-numeric:tabular-nums}
+.ch{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}.ch h2{margin:0!important}
+.lks{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.lks .pill{font-size:12.5px;padding:4px 12px}
+.pill.ko{background:#fef2f2;color:#b91c1c}.pill.ok{background:#ecfdf5;color:#047857}
 </style>
 </head>
 <body>
@@ -258,7 +261,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
   </div>
 
   <div class="card">
-    <h2>Ultime chiamate</h2>
+    <div class="ch"><h2>Ultime chiamate</h2><button class="btn go" id="lk-btn" onclick="lookupUnknown()" title="Cerca su Google i numeri non in rubrica e salva quelli trovati">🔎 Cerca su Google i non salvati</button></div>
     <div class="scroll" id="recent"></div>
     <div class="more" id="more" style="display:none"><button class="btn" onclick="showMore()">Mostra altre</button></div>
   </div>
@@ -288,6 +291,11 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
     <div class="row"><button class="btn" onclick="closeAdd()">Chiudi</button><button class="btn go" id="a-save" onclick="saveAdd()">Salva in rubrica</button></div>
   </div>
 </div>
+
+<div class="modal pop" id="lkm" onmousedown="if(event.target===this)closePop()"><div class="box wide">
+  <div class="mh"><h3>Ricerca su Google</h3><button class="btn" onclick="closePop()">Chiudi</button></div>
+  <div id="lk-body"></div>
+</div></div>
 
 <div id="toast"></div>
 
@@ -441,7 +449,7 @@ function render(anim) {
   $('opmissing').style.display = hasAgent ? 'none' : 'block';
   renderChips(); renderRange(); renderOpSel(); renderKpis(a); renderChart(a);
   if (hasAgent) { renderOpRank(); renderOpTime(a); renderOpTable(); renderOpHeat(); }
-  renderHours(a); renderWdays(a); renderTop(); renderRecent(); renderAddBar(); renderClient();
+  renderHours(a); renderWdays(a); renderTop(); renderRecent(); updLkBtn(); renderAddBar(); renderClient();
 }
 
 function pick(g, k) {
@@ -872,6 +880,61 @@ function exportCsv() {
   a.href = URL.createObjectURL(new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8' }));
   a.download = `chiamate_${dayKey(new Date())}.csv`;
   a.click();
+}
+
+// ── Ricerca automatica su Google dei numeri non salvati ──────────
+// Richiede la Edge Function Supabase "lookup-number" (vedi supabase/functions/lookup-number)
+const LOOKUP_FN = 'lookup-number', LOOKUP_MAX = 50, LK_TTL = 14 * 864e5;
+let lkBusy = false;
+const lkMiss = (() => { try { return JSON.parse(localStorage.getItem('crm_lk_miss') || '{}'); } catch (e) { return {}; } })();
+const lkStoreMiss = () => { try { localStorage.setItem('crm_lk_miss', JSON.stringify(lkMiss)); } catch (e) {} };
+function lkTodo() {
+  const seen = new Set(), out = [];
+  view.forEach(r => {
+    const n = r.number;
+    if (!n || seen.has(n)) return; seen.add(n);
+    if (contacts[n] || !/^\+?\d{6,}$/.test(String(n).replace(/[\s.\-()]/g, '')) || lkMiss[n] > Date.now() - LK_TTL) return;
+    out.push(n);
+  });
+  return out;
+}
+function updLkBtn() {
+  const b = $('lk-btn'); if (!b || lkBusy) return;
+  const n = lkTodo().length;
+  b.disabled = !n;
+  b.textContent = n ? `🔎 Cerca su Google i non salvati (${Math.min(n, LOOKUP_MAX)}${n > LOOKUP_MAX ? '+' : ''})` : '🔎 Nessun numero da cercare';
+}
+async function lookupUnknown() {
+  if (lkBusy || !sb) return;
+  const todo = lkTodo().slice(0, LOOKUP_MAX);
+  if (!todo.length) return toast('Nessun numero non salvato da cercare');
+  lkBusy = true; const btn = $('lk-btn'); btn.disabled = true;
+  const saved = [], miss = [], fail = []; let fatal = '', firstErr = '';
+  try {
+    for (let i = 0; i < todo.length; i += 10) {
+      btn.textContent = `Cerco… ${Math.min(i + 10, todo.length)}/${todo.length}`;
+      const { data, error } = await sb.functions.invoke(LOOKUP_FN, { body: { numbers: todo.slice(i, i + 10) } });
+      if (error || !data?.results) throw new Error(data?.error || error?.message || 'risposta non valida');
+      for (const r of data.results) {
+        if (r.error) { fail.push(r.number); firstErr = firstErr || r.error; continue; }
+        if (!r.found) { miss.push(r.number); lkMiss[r.number] = Date.now(); continue; }
+        const payload = { number: r.number, name: r.name || null, address: r.address || null, notes: 'Trovato su Google il ' + new Date().toLocaleDateString('it-IT'), usa_medea3: false };
+        const { error: e2 } = await sb.from('contacts').upsert(payload, { onConflict: 'number', ignoreDuplicates: true });
+        if (e2) { fail.push(r.number); firstErr = firstErr || e2.message; } else { contacts[r.number] = payload; saved.push(payload); }
+      }
+    }
+  } catch (e) {
+    fatal = `Ricerca interrotta: ${e.message}. Verifica che la funzione "${LOOKUP_FN}" sia pubblicata su Supabase e che la chiave Google sia configurata.`;
+  }
+  lkStoreMiss(); lkBusy = false; render(false);
+  const tbl = saved.length ? `<div class="scroll"><table><tr><th>Numero</th><th>Nome</th><th>Indirizzo</th></tr>${saved.map(c =>
+    `<tr class="click" onclick="setQuery('${esc(c.number)}')"><td class="num">${esc(c.number)}</td><td>${esc(c.name || '–')}</td><td>${esc(c.address || '–')}</td></tr>`).join('')}</table></div>` : '';
+  $('lk-body').innerHTML = `${fatal ? `<div class="msg ko">${esc(fatal)}</div>` : ''}
+    <div class="lks"><span class="pill ok">✅ Salvati: ${saved.length}</span><span class="pill">Non trovati su Google: ${miss.length}</span>${fail.length ? `<span class="pill ko">Errori: ${fail.length}</span>` : ''}</div>
+    ${saved.length ? '<p class="mut" style="margin:0 0 8px">Salvati in rubrica con nome, indirizzo e nota «Trovato su Google». Clicca una riga per aprire la scheda.</p>' : ''}${tbl}
+    ${fail.length ? `<div class="msg ko">Non salvati per errore (${esc(firstErr.slice(0, 200))}): ${fail.map(esc).join(', ')}</div>` : ''}
+    ${miss.length ? `<div class="mut">Nessuna corrispondenza esatta su Google (non verranno ricercati per 14 giorni): ${miss.map(esc).join(', ')}</div>` : ''}`;
+  openPop('lkm'); updLkBtn();
 }
 
 $('today-lbl').textContent = new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
